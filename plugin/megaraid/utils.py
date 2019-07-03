@@ -16,22 +16,101 @@
 
 import subprocess
 import os
+import json
+import redis
+import hashlib
 
 
-def cmd_exec(cmds):
+class DelayedRedis(object):
+    def __init__(self):
+        self._instance = None
+        self._instance_init = False
+
+    def init(self):
+        os.environ["DJANGO_SETTINGS_MODULE"] = "mwct.app.settings"
+        try:
+            import django
+            django.setup()
+            from mwct.app.backbone.server_enums import ServiceEnum
+        except Exception:
+            self._cache_port = 6379
+        else:
+            from mwct.control.service.instance import InstanceXML
+            self._instance = InstanceXML(quiet=True)
+            self._cache_port = self._instance.get_port_dict(
+                ServiceEnum.redis_server,
+                command=True,
+            )
+        self._instance_init = True
+        self._cache_addr = "127.0.0.1"
+
+    def get_cache(self):
+        if not self._instance_init:
+            self.init()
+        return redis.StrictRedis(
+            host=self._cache_addr,
+            port=self._cache_port,
+            db=0,
+        )
+
+    @staticmethod
+    def get_md5(cmds: list) -> str:
+        cur = hashlib.new("md5")
+        for cmd in cmds:
+            cur.update(cmd.encode("utf-8"))
+        return "cmd_{}".format(cur.hexdigest())
+
+    def _exec(self, cmds: list) -> str:
+        cmd_popen = subprocess.Popen(
+            cmds,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env={
+                "PATH": os.getenv("PATH"),
+            },
+            universal_newlines=True,
+        )
+        str_stdout = "".join(list(cmd_popen.stdout)).strip()
+        str_stderr = "".join(list(cmd_popen.stderr)).strip()
+        errno = cmd_popen.wait()
+        if errno != 0:
+            raise ExecError(
+                " ".join(cmds),
+                errno,
+                str_stdout,
+                str_stderr,
+            )
+        return str_stdout
+
+    def cmd_exec(self, cmds: list):
+        cur_md5 = self.get_md5(cmds)
+        mc = self.get_cache()
+        previous = mc.get(cur_md5)
+        if previous is None:
+            cur_result = self._exec(cmds)
+            mc.set(
+                cur_md5,
+                json.dumps(
+                    {
+                        "result": cur_result,
+                    },
+                ),
+                30,
+            )
+            return cur_result
+        else:
+            return json.loads(previous)["result"]
+
+
+dmc_obj = DelayedRedis()
+
+
+def cmd_exec(cmds) -> str:
     """
     Execute provided command and return the STDOUT as string.
     Raise ExecError if command return code is not zero
     """
-    cmd_popen = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        env={"PATH": os.getenv("PATH")}, universal_newlines=True)
-    str_stdout = "".join(list(cmd_popen.stdout)).strip()
-    str_stderr = "".join(list(cmd_popen.stderr)).strip()
-    errno = cmd_popen.wait()
-    if errno != 0:
-        raise ExecError(" ".join(cmds), errno, str_stdout, str_stderr)
-    return str_stdout
+    return dmc_obj.cmd_exec(cmds)
 
 
 class ExecError(Exception):
@@ -42,6 +121,10 @@ class ExecError(Exception):
         self.stdout = stdout
         self.stderr = stderr
 
-    def __str__(self):
-        return "cmd: '%s', errno: %d, stdout: '%s', stderr: '%s'" % \
-            (self.cmd, self.errno, self.stdout, self.stderr)
+    def __str__(self) -> str:
+        return "cmd: '{}', errno: {:d}, stdout: '{}', stderr: '{}'".format(
+            self.cmd,
+            self.errno,
+            self.stdout,
+            self.stderr,
+        )
