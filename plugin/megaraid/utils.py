@@ -1,4 +1,4 @@
-## Copyright (C) 2015-2016 Red Hat, Inc.
+# Copyright (C) 2015-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -14,11 +14,13 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-import subprocess
-import os
-import json
-import redis
 import hashlib
+import json
+import os
+import subprocess
+from typing import List
+
+import redis
 
 
 class DelayedRedis(object):
@@ -27,20 +29,13 @@ class DelayedRedis(object):
         self._instance_init = False
 
     def init(self):
-        os.environ["DJANGO_SETTINGS_MODULE"] = "mwct.app.settings"
-        try:
-            import django
-            django.setup()
-            from mwct.app.backbone.server_enums import ServiceEnum
-        except Exception:
-            self._cache_port = 6379
-        else:
-            from mwct.control.service.instance import InstanceXML
-            self._instance = InstanceXML(quiet=True)
-            self._cache_port = self._instance.get_port_dict(
-                ServiceEnum.redis_server,
-                command=True,
-            )
+        from mwct.control.service.instance import InstanceXML
+        from mwct.host_monitor_server.client_enums import ServiceEnum
+        self._instance = InstanceXML(quiet=True)
+        self._cache_port = self._instance.get_port_dict(
+            ServiceEnum.redis_server,
+            command=True,
+        )
         self._instance_init = True
         self._cache_addr = "127.0.0.1"
 
@@ -54,13 +49,14 @@ class DelayedRedis(object):
         )
 
     @staticmethod
-    def get_md5(cmds: list) -> str:
+    def get_md5(cmds: List) -> str:
         cur = hashlib.new("md5")
         for cmd in cmds:
             cur.update(cmd.encode("utf-8"))
         return "cmd_{}".format(cur.hexdigest())
 
-    def _exec(self, cmds: list) -> str:
+    @staticmethod
+    def _exec(cmds: List) -> str:
         cmd_popen = subprocess.Popen(
             cmds,
             stdout=subprocess.PIPE,
@@ -82,7 +78,7 @@ class DelayedRedis(object):
             )
         return str_stdout
 
-    def cmd_exec(self, cmds: list):
+    def cmd_exec(self, cmds: List):
         cur_md5 = self.get_md5(cmds)
         mc = self.get_cache()
         previous = mc.get(cur_md5)
@@ -114,8 +110,8 @@ def cmd_exec(cmds) -> str:
 
 
 class ExecError(Exception):
-    def __init__(self, cmd, errno, stdout, stderr, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    def __init__(self, cmd, errno, stdout, stderr, *args):
+        Exception.__init__(self, *args)
         self.cmd = cmd
         self.errno = errno
         self.stdout = stdout
