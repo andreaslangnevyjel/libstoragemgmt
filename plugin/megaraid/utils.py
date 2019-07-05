@@ -85,7 +85,7 @@ class DelayedRedis(object):
         cur_md5 = self.get_md5(cmds)
         mc = self.get_cache()
         previous = mc.get(cur_md5)
-        if previous is None:  #  or True:
+        if previous is None:  # or True:
             cur_result = self._exec(cmds)
             # print(cur_result, cur_result.retcode)
             mc.set(

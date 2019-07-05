@@ -17,21 +17,14 @@
 #         Gris Ge <fge@redhat.com>
 #         Joe Handzik <joseph.t.handzik@hpe.com>
 
-from abc import ABCMeta as _ABCMeta
-import re
 import binascii
-from six import with_metaclass
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
-
+import json
+import re
+from abc import ABCMeta
 from json.decoder import WHITESPACE
+from typing import Dict, List
 
 from lsm._common import get_class, default_property, ErrorNumber, LsmError
-
-import six
 
 
 class DataEncoder(json.JSONEncoder):
@@ -41,7 +34,9 @@ class DataEncoder(json.JSONEncoder):
 
     def default(self, my_class):
         if not isinstance(my_class, IData):
-            raise ValueError('incorrect class type:' + str(type(my_class)))
+            raise ValueError(
+                'incorrect class type:' + str(type(my_class)),
+            )
         else:
             return my_class._to_dict()
 
@@ -52,13 +47,13 @@ class DataDecoder(json.JSONDecoder):
     """
 
     @staticmethod
-    def __process_dict(d):
+    def __process_dict(d: Dict) -> Dict:
         """
         Processes a dictionary
         """
         rc = {}
 
-        if 'class' in d:
+        if "class" in d:
             rc = IData._factory(d)
         else:
             for (k, v) in d.items():
@@ -67,15 +62,15 @@ class DataDecoder(json.JSONDecoder):
         return rc
 
     @staticmethod
-    def __process_list(l):
+    def __process_list(l: List) -> List:
         """
         Processes a list
         """
         rc = []
         for elem, value in enumerate(l):
-            if type(value) is list:
+            if isinstance(value, list):
                 rc.append(DataDecoder.__process_list(value))
-            elif type(value) is dict:
+            elif isinstance(value, dict):
                 rc.append(DataDecoder.__process_dict(value))
             else:
                 rc.append(value)
@@ -86,18 +81,18 @@ class DataDecoder(json.JSONDecoder):
         """
         Decodes the parsed json
         """
-        if type(e) is dict:
+        if isinstance(e, dict):
             return DataDecoder.__process_dict(e)
-        elif type(e) is list:
+        elif isinstance(e, list):
             return DataDecoder.__process_list(e)
         else:
             return e
 
-    def decode(self, json_string, _w=WHITESPACE.match):
+    def decode(self, json_string: str, _w=WHITESPACE.match):
         return DataDecoder.__decode(json.loads(json_string))
 
 
-class IData(with_metaclass(_ABCMeta, object)):
+class IData(object, metaclass=ABCMeta):
     """
     Base class functionality of serializable
     classes.
@@ -107,7 +102,7 @@ class IData(with_metaclass(_ABCMeta, object)):
         """
         Represent the class as a dictionary
         """
-        rc = {'class': self.__class__.__name__}
+        rc = {"class": self.__class__.__name__}
 
         # If one of the attributes is another IData we will
         # process that too, is there a better way to handle this?
@@ -120,26 +115,26 @@ class IData(with_metaclass(_ABCMeta, object)):
         return rc
 
     @staticmethod
-    def _factory(d):
+    def _factory(d: Dict):
         """
         Factory for creating the appropriate class given a dictionary.
         This only works for objects that inherit from IData
         """
-        if 'class' in d:
-            class_name = d['class']
-            del d['class']
-            c = get_class(__name__ + '.' + class_name)
+        if "class" in d:
+            class_name = d.pop("class")
+            del d["class"]
+            c = get_class("{}.{}".format(__name__, class_name))
 
             # If any of the parameters are themselves an IData process them
             for k, v in list(d.items()):
-                if isinstance(v, dict) and 'class' in v:
-                    d['_' + k] = IData._factory(d.pop(k))
+                if isinstance(v, dict) and "class" in v:
+                    d['_{}'.format(k)] = IData._factory(d.pop(k))
                 else:
-                    d['_' + k] = d.pop(k)
+                    d['_{}'.format(k)] = d.pop(k)
 
             return c(**d)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Used for human string representation.
         """
@@ -247,10 +242,13 @@ class Disk(IData):
     HEALTH_STATUS_WARN = 1
     HEALTH_STATUS_GOOD = 2
 
-    def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _system_id, _plugin_data=None, _vpd83='',
-                 _location='', _rpm=RPM_NO_SUPPORT,
-                 _link_type=LINK_TYPE_NO_SUPPORT):
+    def __init__(
+            self,
+            _id, _name, _disk_type, _block_size, _num_of_blocks,
+            _status, _system_id, _plugin_data=None, _vpd83="",
+            _location="", _rpm=RPM_NO_SUPPORT,
+            _link_type=LINK_TYPE_NO_SUPPORT,
+    ):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -260,17 +258,19 @@ class Disk(IData):
         self._system_id = _system_id
         self._plugin_data = _plugin_data
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                           "expecting 32 or 16 lower case hex characters" %
-                           _vpd83)
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
+                "expecting 32 or 16 lower case hex characters" %
+                _vpd83,
+            )
         self._vpd83 = _vpd83
         self._location = _location
         self._rpm = _rpm
         self._link_type = _link_type
 
     @property
-    def size_bytes(self):
+    def size_bytes(self) -> int:
         """
         Disk size in bytes.
         """
@@ -284,10 +284,11 @@ class Disk(IData):
         The VPD83 ID could be used in 'lsm.SCSI.disk_paths_of_vpd83()'
         when physical disk is exposed to OS directly.
         """
-        if self._vpd83 == '':
+        if self._vpd83 == "":
             raise LsmError(
                 ErrorNumber.NO_SUPPORT,
-                "Disk.vpd83 is not supported by current disk or plugin")
+                "Disk.vpd83 is not supported by current disk or plugin",
+            )
 
         return self._vpd83
 
@@ -296,10 +297,12 @@ class Disk(IData):
         """
         String. Disk location in storage topology. New in version 1.3.
         """
-        if self._location == '':
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.location property is not supported by this "
-                           "plugin yet")
+        if self._location == "":
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Disk.location property is not supported by this "
+                "plugin yet",
+            )
         return self._location
 
     @property
@@ -317,8 +320,10 @@ class Disk(IData):
                 Normal rotational disk (e.g., HDD)
         """
         if self._rpm == Disk.RPM_NO_SUPPORT:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.rpm is not supported by this plugin yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Disk.rpm is not supported by this plugin yet",
+            )
         return self._rpm
 
     @property
@@ -353,18 +358,19 @@ class Disk(IData):
                 PCI-E, e.g. NVMe
         """
         if self._link_type == Disk.LINK_TYPE_NO_SUPPORT:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.link_type is not supported by this plugin "
-                           "yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Disk.link_type is not supported by this plugin yet",
+            )
         return self._link_type
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
 # Lets do this once outside of the class to minimize the number of
 # times it needs to be compiled.
-_vol_regex_vpd83 = re.compile('(?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$')
+_vol_regex_vpd83 = re.compile(r'(?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$')
 
 
 @default_property('id', doc="Unique identifier")
@@ -462,15 +468,19 @@ class Volume(IData):
     PHYSICAL_DISK_CACHE_DISABLED = 3
     PHYSICAL_DISK_CACHE_USE_DISK_SETTING = 4
 
-    def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
-                 _admin_state, _system_id, _pool_id, _plugin_data=None):
+    def __init__(
+        self, _id, _name, _vpd83, _block_size, _num_of_blocks,
+        _admin_state, _system_id, _pool_id, _plugin_data=None,
+    ):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                           "expecting 32 or 16 lower case hex characters" %
-                           _vpd83)
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
+                "expecting 32 or 16 lower case hex characters" %
+                _vpd83,
+            )
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
         self._block_size = _block_size        # Block size
         self._num_of_blocks = _num_of_blocks  # Number of blocks
@@ -480,23 +490,24 @@ class Volume(IData):
         self._plugin_data = _plugin_data
 
     @property
-    def size_bytes(self):
+    def size_bytes(self) -> int:
         """
         Volume size in bytes.
         """
         return self.block_size * self.num_of_blocks
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     @staticmethod
-    def vpd83_verify(vpd):
+    def vpd83_verify(vpd) -> bool:
         """
         Returns True if string is valid vpd 0x83 representation
         """
         if vpd and _vol_regex_vpd83.match(vpd):
             return True
-        return False
+        else:
+            return False
 
 
 @default_property('id', doc="Unique identifier")
@@ -520,8 +531,10 @@ class System(IData):
     READ_CACHE_PCT_NO_SUPPORT = -2
     READ_CACHE_PCT_UNKNOWN = -1
 
-    def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
-                 _fw_version='', _mode=None, _read_cache_pct=None):
+    def __init__(
+        self, _id, _name, _status, _status_info, _plugin_data=None,
+        _fw_version="", _mode=None, _read_cache_pct=None,
+    ):
         self._id = _id
         self._name = _name
         self._status = _status
@@ -544,10 +557,12 @@ class System(IData):
         On some system, it might contain multiple version strings, example:
             "Package: 23.32.0-0009, FW: 3.440.05-3712"
         """
-        if self._fw_version == '':
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "System.fw_version() is not supported by this "
-                           "plugin yet")
+        if self._fw_version == "":
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "System.fw_version() is not supported by this "
+                "plugin yet",
+            )
         return self._fw_version
 
     @property
@@ -566,8 +581,10 @@ class System(IData):
                 SCSI enclosure service might be exposed to OS also.
         """
         if self._mode == System.MODE_NO_SUPPORT:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "System.mode is not supported by this plugin yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "System.mode is not supported by this plugin yet",
+            )
         return self._mode
 
     @property
@@ -580,9 +597,11 @@ class System(IData):
                 then be 100 - read_cache_pct
         """
         if self._read_cache_pct == System.READ_CACHE_PCT_NO_SUPPORT:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "System.read_cache_pct is not supported by this "
-                           "plugin yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "System.read_cache_pct is not supported by this "
+                "plugin yet",
+            )
         return self._read_cache_pct
 
 
@@ -595,8 +614,7 @@ class System(IData):
 @default_property('system_id', doc="System identifier")
 @default_property("plugin_data", doc="Plug-in private data")
 @default_property("element_type", doc="What pool can be used for")
-@default_property("unsupported_actions",
-                  doc="What cannot be done with this pool")
+@default_property("unsupported_actions", doc="What cannot be done with this pool")
 class Pool(IData):
     """
     Pool specific information
@@ -639,9 +657,11 @@ class Pool(IData):
     MEMBER_TYPE_DISK = 2
     MEMBER_TYPE_POOL = 3
 
-    def __init__(self, _id, _name, _element_type, _unsupported_actions,
-                 _total_space, _free_space,
-                 _status, _status_info, _system_id, _plugin_data=None):
+    def __init__(
+        self, _id, _name, _element_type, _unsupported_actions,
+        _total_space, _free_space,
+        _status, _status_info, _system_id, _plugin_data=None,
+    ):
         self._id = _id                      # Identifier
         self._name = _name                  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
@@ -667,8 +687,10 @@ class Pool(IData):
 class FileSystem(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
-    def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
-                 _system_id, _plugin_data=None):
+    def __init__(
+        self, _id, _name, _total_space, _free_space, _pool_id,
+        _system_id, _plugin_data=None,
+    ):
         self._id = _id
         self._name = _name
         self._total_space = _total_space
@@ -707,8 +729,10 @@ class NfsExport(IData):
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = -2
 
-    def __init__(self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
-                 _anonuid, _anongid, _options, _plugin_data=None):
+    def __init__(
+        self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
+        _anonuid, _anongid, _options, _plugin_data=None,
+    ):
         assert (_fs_id is not None)
         assert (_export_path is not None)
 
@@ -750,8 +774,10 @@ class AccessGroup(IData):
     INIT_TYPE_ISCSI_IQN = 5
     INIT_TYPE_ISCSI_WWPN_MIXED = 7
 
-    def __init__(self, _id, _name, _init_ids, _init_type, _system_id,
-                 _plugin_data=None):
+    def __init__(
+        self, _id, _name, _init_ids, _init_type, _system_id,
+        _plugin_data=None,
+    ):
         self._id = _id
         self._name = _name                # AccessGroup name
         # A list of Initiator ID strings.
@@ -770,14 +796,18 @@ class AccessGroup(IData):
             if valid:
                 rc.append(init_id)
             else:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid initiator ID %s" % i)
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Invalid initiator ID %s" % i,
+                )
         return rc
 
     _regex_wwpn = re.compile(r"""
         ^(0x|0X)?([0-9A-Fa-f]{2})
         (([\.:\-])?[0-9A-Fa-f]{2}){7}$
-        """, re.X)
+""",
+        re.X,
+    )
 
     @staticmethod
     def initiator_id_verify(init_id, init_type=None, raise_exception=False):
@@ -790,26 +820,25 @@ class AccessGroup(IData):
         :return:(Bool, init_type, init_id)  Note: init_id will be returned in
                 normalized format if it's a WWPN
         """
-        if init_id.startswith('iqn') or init_id.startswith('eui') or\
-                init_id.startswith('naa'):
+        if init_id.startswith('iqn') or init_id.startswith('eui') or init_id.startswith('naa'):
 
-            if init_type is None or \
-                    init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
+            if init_type is None or init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
                 return True, AccessGroup.INIT_TYPE_ISCSI_IQN, init_id
         if AccessGroup._regex_wwpn.match(str(init_id)):
-            if init_type is None or \
-                    init_type == AccessGroup.INIT_TYPE_WWPN:
+            if init_type is None or init_type == AccessGroup.INIT_TYPE_WWPN:
                 return (True, AccessGroup.INIT_TYPE_WWPN,
                         AccessGroup._wwpn_to_lsm_type(init_id))
 
         if raise_exception:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Initiator id '%s' is invalid" % init_id)
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Initiator id '%s' is invalid" % init_id,
+            )
 
         return False, None, None
 
     @staticmethod
-    def _wwpn_to_lsm_type(wwpn, raise_error=True):
+    def _wwpn_to_lsm_type(wwpn, raise_error: bool=True):
         """
         Convert provided WWPN string into LSM standard one:
 
@@ -837,13 +866,15 @@ class AccessGroup(IData):
         if AccessGroup._regex_wwpn.match(str(wwpn)):
             s = str(wwpn)
             s = s.lower()
-            s = re.sub(r'0x', '', s)
-            s = re.sub(r'[^0-9a-f]', '', s)
+            s = re.sub(r'0x', "", s)
+            s = re.sub(r'[^0-9a-f]', "", s)
             s = ":".join(re.findall(r'..', s))
             return s
         if raise_error:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Invalid WWPN Initiator: %s" % wwpn)
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Invalid WWPN Initiator: %s" % wwpn,
+            )
         return None
 
 
@@ -863,9 +894,11 @@ class TargetPort(IData):
     TYPE_FCOE = 3
     TYPE_ISCSI = 4
 
-    def __init__(self, _id, _port_type, _service_address,
-                 _network_address, _physical_address, _physical_name,
-                 _system_id, _plugin_data=None):
+    def __init__(
+        self, _id, _port_type, _service_address,
+        _network_address, _physical_address, _physical_name,
+        _system_id, _plugin_data=None,
+    ):
         self._id = _id
         self._port_type = _port_type
         self._service_address = _service_address
@@ -1010,9 +1043,11 @@ class Capabilities(IData):
     VOLUME_RAID_CREATE = 222
     DISK_VPD83_GET = 223
 
-    def _to_dict(self):
-        return {'class': self.__class__.__name__,
-                'cap': ''.join(['%02x' % b for b in self._cap])}
+    def _to_dict(self) -> Dict:
+        return {
+            "class": self.__class__.__name__,
+            "cap": "".join(['%02x' % b for b in self._cap]),
+        }
 
     def __init__(self, _cap=None):
         if _cap is not None:
@@ -1034,12 +1069,11 @@ class Capabilities(IData):
         Return a dict containing all valid capability:
             integer => string name
         """
-        lsm_cap_to_str_conv = dict()
+        lsm_cap_to_str_conv = {}
         for c_str, c_int in list(Capabilities.__dict__.items()):
-            if isinstance(c_str, six.string_types) and type(c_int) == int and \
-                    c_str[0] != '_' and \
-                    Capabilities._CAP_NUM_BEGIN <= c_int <= Capabilities._NUM:
-                lsm_cap_to_str_conv[c_int] = c_str
+            if isinstance(c_str, str) and isinstance(c_int, int):
+                if c_str[0] != '_' and Capabilities._CAP_NUM_BEGIN <= c_int <= Capabilities._NUM:
+                    lsm_cap_to_str_conv[c_int] = c_str
         return lsm_cap_to_str_conv
 
     def get_supported(self, all_cap=False):
@@ -1090,16 +1124,13 @@ class Battery(IData):
     STATUS_DEGRADED = 1 << 6
     STATUS_ERROR = 1 << 7
 
-    def __init__(self, _id, _name, _type, _status, _system_id,
-                 _plugin_data=None):
+    def __init__(
+        self, _id, _name, _type, _status, _system_id,
+        _plugin_data=None,
+    ):
         self._id = _id
         self._name = _name
         self._type = _type
         self._status = _status
         self._system_id = _system_id
         self._plugin_data = _plugin_data
-
-
-if __name__ == '__main__':
-    # TODO Need some unit tests that encode/decode all the types with nested
-    pass
