@@ -74,34 +74,34 @@ def _disk_type_of(disk_show_basic_dict: Dict):
     """
     Return the 'Drive /c0/e64/s0' entry of '/c0/e64/s0 show all'
     """
-    disk_media = disk_show_basic_dict['Med']
-    disk_interface = disk_show_basic_dict['Intf']
-    if disk_media == 'HDD':
-        if disk_interface == 'SATA':
+    disk_media = disk_show_basic_dict["Med"]
+    disk_interface = disk_show_basic_dict["Intf"]
+    if disk_media == "HDD":
+        if disk_interface == "SATA":
             return Disk.TYPE_SATA
-        elif disk_interface == 'SAS':
+        elif disk_interface == "SAS":
             return Disk.TYPE_SAS
-        elif disk_interface == 'Parallel SCSI':
+        elif disk_interface == "Parallel SCSI":
             return Disk.TYPE_SCSI
-        elif disk_interface == 'FC':
+        elif disk_interface == "FC":
             return Disk.TYPE_FC
         else:
             return Disk.TYPE_HDD
-    elif disk_media == 'SSD':
+    elif disk_media == "SSD":
         return Disk.TYPE_SSD
 
     return Disk.TYPE_UNKNOWN
 
 
 _DISK_STATE_MAP = {
-    'Onln': Disk.STATUS_OK,
-    'Offln': Disk.STATUS_ERROR,
-    'GHS': Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
-    'DHS': Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
-    'UGood': Disk.STATUS_FREE | Disk.STATUS_OK,
-    'UBad': Disk.STATUS_FREE | Disk.STATUS_ERROR,
-    'Rbld': Disk.STATUS_RECONSTRUCT,
-    'JBOD': Disk.STATUS_OK,
+    "Onln": Disk.STATUS_OK,
+    "Offln": Disk.STATUS_ERROR,
+    "GHS": Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
+    "DHS": Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
+    "UGood": Disk.STATUS_FREE | Disk.STATUS_OK,
+    "UBad": Disk.STATUS_FREE | Disk.STATUS_ERROR,
+    "Rbld": Disk.STATUS_RECONSTRUCT,
+    "JBOD": Disk.STATUS_OK,
 }
 
 
@@ -109,20 +109,20 @@ def _disk_status_of(
     disk_show_basic_dict: Dict,
     disk_show_stat_dict: Dict,
 ):
-    disk_status = _DISK_STATE_MAP.get(disk_show_basic_dict['State'], 0)
+    disk_status = _DISK_STATE_MAP.get(disk_show_basic_dict["State"], 0)
 
-    if disk_show_stat_dict['Media Error Count'] or \
-       disk_show_stat_dict['S.M.A.R.T alert flagged by drive'] != 'No':
+    if disk_show_stat_dict["Media Error Count"] or \
+       disk_show_stat_dict["S.M.A.R.T alert flagged by drive"] != "No":
         disk_status = (disk_status & ~Disk.STATUS_OK) | Disk.STATUS_ERROR
 
-    elif disk_show_stat_dict['Predictive Failure Count']:
+    elif disk_show_stat_dict["Predictive Failure Count"]:
         disk_status = (disk_status & ~Disk.STATUS_OK) | \
             Disk.STATUS_PREDICTIVE_FAILURE
 
-    if disk_show_basic_dict['Sp'] == 'D':
+    if disk_show_basic_dict["Sp"] == "D":
         disk_status |= Disk.STATUS_STOPPED
 
-    if disk_show_basic_dict['Sp'] == 'F':
+    if disk_show_basic_dict["Sp"] == "F":
         disk_status |= Disk.STATUS_OTHER
 
     if disk_status == 0:
@@ -151,12 +151,12 @@ def _mega_size_to_lsm(mega_size):
 
 
 _POOL_STATUS_MAP: Dict = {
-    'Onln': Pool.STATUS_OK,
-    'Dgrd': Pool.STATUS_DEGRADED | Pool.STATUS_OK,
-    'Pdgd': Pool.STATUS_DEGRADED | Pool.STATUS_OK,
-    'Offln': Pool.STATUS_ERROR,
-    'Rbld': Pool.STATUS_RECONSTRUCTING | Pool.STATUS_DEGRADED | Pool.STATUS_OK,
-    'Optl': Pool.STATUS_OK,
+    "Onln": Pool.STATUS_OK,
+    "Dgrd": Pool.STATUS_DEGRADED | Pool.STATUS_OK,
+    "Pdgd": Pool.STATUS_DEGRADED | Pool.STATUS_OK,
+    "Offln": Pool.STATUS_ERROR,
+    "Rbld": Pool.STATUS_RECONSTRUCTING | Pool.STATUS_DEGRADED | Pool.STATUS_OK,
+    "Optl": Pool.STATUS_OK,
 }
 
 
@@ -164,8 +164,8 @@ def _pool_status_of(dg_top: Dict):
     """
     Return status
     """
-    if dg_top['State'] in list(_POOL_STATUS_MAP.keys()):
-        return _POOL_STATUS_MAP[dg_top['State']]
+    if dg_top["State"] in list(_POOL_STATUS_MAP.keys()):
+        return _POOL_STATUS_MAP[dg_top["State"]]
     return Pool.STATUS_UNKNOWN
 
 
@@ -174,37 +174,37 @@ def _pool_id_of(dg_id, sys_id):
 
 
 _RAID_TYPE_MAP = {
-    'RAID0': Volume.RAID_TYPE_RAID0,
-    'RAID1': Volume.RAID_TYPE_RAID1,
-    'RAID5': Volume.RAID_TYPE_RAID5,
-    'RAID6': Volume.RAID_TYPE_RAID6,
-    'RAID00': Volume.RAID_TYPE_RAID0,
+    "RAID0": Volume.RAID_TYPE_RAID0,
+    "RAID1": Volume.RAID_TYPE_RAID1,
+    "RAID5": Volume.RAID_TYPE_RAID5,
+    "RAID6": Volume.RAID_TYPE_RAID6,
+    "RAID00": Volume.RAID_TYPE_RAID0,
     # Some MegaRAID only support max 16 disks in each span.
     # To support 16+ disks in on group, MegaRAI has RAID00 or even RAID000.
     # All of them are considered as RAID0
-    'RAID10': Volume.RAID_TYPE_RAID10,
-    'RAID50': Volume.RAID_TYPE_RAID50,
-    'RAID60': Volume.RAID_TYPE_RAID60,
+    "RAID10": Volume.RAID_TYPE_RAID10,
+    "RAID50": Volume.RAID_TYPE_RAID50,
+    "RAID60": Volume.RAID_TYPE_RAID60,
 }
 
 _LSM_RAID_TYPE_CONV = {
-    Volume.RAID_TYPE_RAID0: 'RAID0',
-    Volume.RAID_TYPE_RAID1: 'RAID1',
-    Volume.RAID_TYPE_RAID5: 'RAID5',
-    Volume.RAID_TYPE_RAID6: 'RAID6',
-    Volume.RAID_TYPE_RAID50: 'RAID50',
-    Volume.RAID_TYPE_RAID60: 'RAID60',
-    Volume.RAID_TYPE_RAID10: 'RAID10',
+    Volume.RAID_TYPE_RAID0: "RAID0",
+    Volume.RAID_TYPE_RAID1: "RAID1",
+    Volume.RAID_TYPE_RAID5: "RAID5",
+    Volume.RAID_TYPE_RAID6: "RAID6",
+    Volume.RAID_TYPE_RAID50: "RAID50",
+    Volume.RAID_TYPE_RAID60: "RAID60",
+    Volume.RAID_TYPE_RAID10: "RAID10",
 }
 
 
 def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
     raid_type = _RAID_TYPE_MAP.get(
-        vd_basic_info['TYPE'], Volume.RAID_TYPE_UNKNOWN)
+        vd_basic_info["TYPE"], Volume.RAID_TYPE_UNKNOWN)
 
     # In LSI, four disks or more RAID1 is actually a RAID10.
     if raid_type == Volume.RAID_TYPE_RAID1 and \
-       int(vd_prop_info['Number of Drives Per Span']) >= 4:
+       int(vd_prop_info["Number of Drives Per Span"]) >= 4:
         raid_type = Volume.RAID_TYPE_RAID10
 
     return raid_type
@@ -223,10 +223,10 @@ def _lsm_raid_type_to_mega(lsm_raid_type):
 
 
 def _disk_rpm_of(disk_show_basic_dict):
-    disk_media = disk_show_basic_dict['Med']
-    if disk_media == 'HDD':
+    disk_media = disk_show_basic_dict["Med"]
+    if disk_media == "HDD":
         return Disk.RPM_ROTATING_UNKNOWN_SPEED
-    elif disk_media == 'SSD':
+    elif disk_media == "SSD":
         return Disk.RPM_NON_ROTATING_MEDIUM
     return Disk.RPM_UNKNOWN
 
@@ -235,14 +235,14 @@ def _disk_link_type_of(disk_show_basic_dict):
     """
     Return the 'Drive /c0/e64/s0' entry of '/c0/e64/s0 show all'
     """
-    disk_interface = disk_show_basic_dict['Intf']
-    if disk_interface == 'SATA':
+    disk_interface = disk_show_basic_dict["Intf"]
+    if disk_interface == "SATA":
         return Disk.LINK_TYPE_ATA
-    elif disk_interface == 'SAS':
+    elif disk_interface == "SAS":
         return Disk.LINK_TYPE_SAS
-    elif disk_interface == 'Parallel SCSI':
+    elif disk_interface == "Parallel SCSI":
         return Disk.LINK_TYPE_UNKNOWN
-    elif disk_interface == 'FC':
+    elif disk_interface == "FC":
         return Disk.LINK_TYPE_FC
 
     return Disk.LINK_TYPE_UNKNOWN
@@ -268,7 +268,7 @@ def _fix_bbu_cv_output(output):
     """
     tmp_dict = dict()
     for a in output:
-        tmp_dict[a['Property']] = a['Value']
+        tmp_dict[a["Property"]] = a["Value"]
     return tmp_dict
 
 
@@ -298,23 +298,23 @@ def _cv_status_to_lsm(cv_status):
 
 
 def _mega_bbu_to_lsm(sys_id, bbu_show_all_output):
-    design_info = _fix_bbu_cv_output(bbu_show_all_output['BBU_Design_Info'])
-    bbu_info = _fix_bbu_cv_output(bbu_show_all_output['BBU_Info'])
+    design_info = _fix_bbu_cv_output(bbu_show_all_output["BBU_Design_Info"])
+    bbu_info = _fix_bbu_cv_output(bbu_show_all_output["BBU_Info"])
 
     battery_type = Battery.TYPE_CHEMICAL
     name = "LSI BBU: %s %s %s %s %s %s" % (
-        design_info['Manufacture Name'],
-        design_info['Device Name'],
-        design_info['Device Chemistry'],
-        design_info['Design Capacity'],
-        design_info['Design Voltage'],
-        design_info['Date of Manufacture'],
+        design_info["Manufacture Name"],
+        design_info["Device Name"],
+        design_info["Device Chemistry"],
+        design_info["Design Capacity"],
+        design_info["Design Voltage"],
+        design_info["Date of Manufacture"],
     )
     battery_id = "%s_BBU_%s" % (
         sys_id,
-        design_info['Serial Number'],
+        design_info["Serial Number"],
     )
-    status = _bbu_status_to_lsm(bbu_info['Battery State'])
+    status = _bbu_status_to_lsm(bbu_info["Battery State"])
     plugin_data = None
 
     return Battery(
@@ -328,17 +328,17 @@ def _mega_bbu_to_lsm(sys_id, bbu_show_all_output):
 
 
 def _mega_cv_to_lsm(sys_id, cv_show_all_output):
-    design_info = _fix_bbu_cv_output(cv_show_all_output['Design_Info'])
-    cv_info = _fix_bbu_cv_output(cv_show_all_output['Cachevault_Info'])
+    design_info = _fix_bbu_cv_output(cv_show_all_output["Design_Info"])
+    cv_info = _fix_bbu_cv_output(cv_show_all_output["Cachevault_Info"])
 
     battery_type = Battery.TYPE_CAPACITOR
-    battery_id = "%s_CV_%s" % (sys_id, design_info['Serial Number'])
+    battery_id = "%s_CV_%s" % (sys_id, design_info["Serial Number"])
     name = "LSI CacheVault: %s %s %s" % (
-        design_info['Device Name'],
-        design_info['Design Capacity'],
-        design_info['Date of Manufacture'],
+        design_info["Device Name"],
+        design_info["Design Capacity"],
+        design_info["Date of Manufacture"],
     )
-    status = _cv_status_to_lsm(cv_info['State'])
+    status = _cv_status_to_lsm(cv_info["State"])
 
     plugin_data = None
 
@@ -361,7 +361,7 @@ class MegaRAID(IPlugin):
         "/opt/MegaRAID/perccli/perccli64",
         "/opt/MegaRAID/perccli/perccli",
     ]
-    _CMD_JSON_OUTPUT_SWITCH = 'J'
+    _CMD_JSON_OUTPUT_SWITCH = "J"
 
     def __init__(self):
         self._storcli_bin = None
@@ -380,7 +380,7 @@ class MegaRAID(IPlugin):
             if os.path.lexists(cur_path) and os.access(cur_path, os.X_OK):
                 self._storcli_bin = cur_path
                 try:
-                    self._storcli_exec(['-v'], flag_json=False)
+                    self._storcli_exec(["-v"], flag_json=False)
                     working_bins.append(cur_path)
                 except Exception:
                     pass
@@ -416,13 +416,13 @@ class MegaRAID(IPlugin):
                 "This plugin requires root privilege both daemon and client",
             )
         uri_parsed = uri_parse(uri)
-        self._storcli_bin = uri_parsed.get('parameters', {}).get('storcli')
+        self._storcli_bin = uri_parsed.get("parameters", {}).get("storcli")
         # change working dir to tmp folder as storcli will create a log file
         # named as 'MegaSAS.log'.
 
         os.chdir(self._tmp_dir)
         if self._storcli_bin:
-            self._storcli_exec(['-v'], flag_json=False)
+            self._storcli_exec(["-v"], flag_json=False)
         else:
             self._find_storcli()
 
@@ -503,7 +503,7 @@ class MegaRAID(IPlugin):
 
         if flag_json:
             output_dict = json.loads(output)
-            ctrl_output = output_dict.get('Controllers')
+            ctrl_output = output_dict.get("Controllers")
             if len(ctrl_output) != 1:
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
@@ -511,19 +511,24 @@ class MegaRAID(IPlugin):
                     "storcli: {}".format(str(output_dict)),
                 )
 
-            rc_status = ctrl_output[0].get('Command Status')
-            if rc_status.get('Status') != 'Success':
-                detail_status = rc_status['Detailed Status'][0]
+            rc_status = ctrl_output[0].get("Command Status")
+            if (cmd_result.retcode, rc_status.get("Status")) not in [
+                # is OK
+                (0, "Success"),
+                # error getting drive status
+                (46, "Failure"),
+            ]:
+                detail_status = rc_status["Detailed Status"][0]
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
                     "MegaRAID storcli failed with error {:d}: {}".format(
-                        detail_status['ErrCd'],
-                        detail_status['ErrMsg'],
+                        detail_status["ErrCd"],
+                        detail_status["ErrMsg"],
                     ),
                 )
-            real_data = ctrl_output[0].get('Response Data')
-            if real_data and 'Response Data' in list(real_data.keys()):
-                return real_data['Response Data']
+            real_data = ctrl_output[0].get("Response Data")
+            if real_data and "Response Data" in list(real_data.keys()):
+                return real_data["Response Data"]
 
             return real_data
         else:
@@ -543,22 +548,22 @@ class MegaRAID(IPlugin):
         return ctrl_count
 
     def _lsm_status_of_ctrl(self, ctrl_show_all_output) -> Tuple:
-        lsi_status_info = ctrl_show_all_output['Status']
-        status_info = ''
+        lsi_status_info = ctrl_show_all_output["Status"]
+        status_info = ""
         status = System.STATUS_UNKNOWN
-        if lsi_status_info['Controller Status'] == 'Optimal':
+        if lsi_status_info["Controller Status"] == "Optimal":
             status = System.STATUS_OK
         else:
             # TODO(Gris Ge): Try pull a disk off to check whether this change.
             status_info = "{}: ".format(
-                lsi_status_info['Controller Status'],
+                lsi_status_info["Controller Status"],
             )
             for key_name in list(lsi_status_info.keys()):
-                if key_name == 'Controller Status':
+                if key_name == "Controller Status":
                     continue
                 if lsi_status_info[key_name] != 0 and \
-                   lsi_status_info[key_name] != 'No' and \
-                   lsi_status_info[key_name] != 'NA':
+                   lsi_status_info[key_name] != "No" and \
+                   lsi_status_info[key_name] != "NA":
                     status_info += " {}:{}".format(
                         key_name,
                         lsi_status_info[key_name],
@@ -569,9 +574,9 @@ class MegaRAID(IPlugin):
     def _sys_id_of_ctrl_num(self, ctrl_num, ctrl_show_all_output=None):
         if ctrl_show_all_output is None:
             return self._storcli_exec(
-                ["/c%d" % ctrl_num, "show"])['Serial Number']
+                ["/c%d" % ctrl_num, "show"])["Serial Number"]
         else:
-            return ctrl_show_all_output['Basics']['Serial Number']
+            return ctrl_show_all_output["Basics"]["Serial Number"]
 
     @_handle_errors
     def systems(self, flags=Client.FLAG_RSVD):
@@ -582,9 +587,9 @@ class MegaRAID(IPlugin):
             )
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
             sys_name = "%s %s %s" % (
-                ctrl_show_all_output['Basics']['Model'],
-                ctrl_show_all_output['Bus']['Host Interface'],
-                ctrl_show_all_output['Basics']['PCI Address'],
+                ctrl_show_all_output["Basics"]["Model"],
+                ctrl_show_all_output["Bus"]["Host Interface"],
+                ctrl_show_all_output["Basics"]["PCI Address"],
             )
             (status, status_info) = self._lsm_status_of_ctrl(
                 ctrl_show_all_output)
@@ -657,22 +662,22 @@ class MegaRAID(IPlugin):
                     "Drive %s" % mega_disk_path
                 ][0]
                 disk_show_attr_dict = disk_show_output[drive_name][
-                    'Drive %s Device attributes' % mega_disk_path
+                    "Drive %s Device attributes" % mega_disk_path
                 ]
                 disk_show_stat_dict = disk_show_output[drive_name][
-                    'Drive %s State' % mega_disk_path
+                    "Drive %s State" % mega_disk_path
                 ]
 
-                disk_id = disk_show_attr_dict['SN'].strip()
+                disk_id = disk_show_attr_dict["SN"].strip()
                 disk_name = "Disk %s %s %s" % (
-                    disk_show_basic_dict['DID'],
-                    disk_show_attr_dict['Manufacturer Id'].strip(),
-                    disk_show_attr_dict['Model Number'],
+                    disk_show_basic_dict["DID"],
+                    disk_show_attr_dict["Manufacturer Id"].strip(),
+                    disk_show_attr_dict["Model Number"],
                 )
                 disk_type = _disk_type_of(disk_show_basic_dict)
                 blk_size = size_human_2_size_bytes(
-                    disk_show_basic_dict['SeSz'])
-                blk_count = _blk_count_of(disk_show_attr_dict['Coerced size'])
+                    disk_show_basic_dict["SeSz"])
+                blk_count = _blk_count_of(disk_show_attr_dict["Coerced size"])
                 status = _disk_status_of(
                     disk_show_basic_dict,
                     disk_show_stat_dict,
@@ -680,11 +685,11 @@ class MegaRAID(IPlugin):
 
                 plugin_data = "%s:%s" % (
                     ctrl_num,
-                    disk_show_basic_dict['EID:Slt'],
+                    disk_show_basic_dict["EID:Slt"],
                 )
                 vpd83 = disk_show_attr_dict["WWN"].lower()
-                if vpd83 == 'na':
-                    vpd83 = ''
+                if vpd83 == "na":
+                    vpd83 = ""
                 rpm = _disk_rpm_of(disk_show_basic_dict)
                 link_type = _disk_link_type_of(disk_show_basic_dict)
 
@@ -706,39 +711,39 @@ class MegaRAID(IPlugin):
         Get information from 'FREE SPACE DETAILS' of /c0/dall show all.
         """
         for free_space in free_space_list:
-            if int(free_space['DG']) == int(dg_num):
-                return _mega_size_to_lsm(free_space['Size'])
+            if int(free_space["DG"]) == int(dg_num):
+                return _mega_size_to_lsm(free_space["Size"])
 
         return 0
 
     def _dg_top_to_lsm_pool(self, dg_top, free_space_list, ctrl_num,
                             dg_show_output, is_in_cc):
         sys_id = self._sys_id_of_ctrl_num(ctrl_num)
-        pool_id = _pool_id_of(dg_top['DG'], sys_id)
-        name = '%s Disk Group %s' % (dg_top['Type'], dg_top['DG'])
+        pool_id = _pool_id_of(dg_top["DG"], sys_id)
+        name = "%s Disk Group %s" % (dg_top["Type"], dg_top["DG"])
         elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
         unsupported_actions = 0
         # TODO(Gris Ge): contact LSI to get accurate total space and free
         #                space. The size we are using here is not what host
         #                got.
-        total_space = _mega_size_to_lsm(dg_top['Size'])
-        free_space = MegaRAID._dg_free_size(dg_top['DG'], free_space_list)
+        total_space = _mega_size_to_lsm(dg_top["Size"])
+        free_space = MegaRAID._dg_free_size(dg_top["DG"], free_space_list)
         status = _pool_status_of(dg_top)
-        status_info = ''
+        status_info = ""
 
-        for dg_drv in dg_show_output['DG Drive LIST']:
-            if dg_drv['DG'] != dg_top['DG']:
+        for dg_drv in dg_show_output["DG Drive LIST"]:
+            if dg_drv["DG"] != dg_top["DG"]:
                 continue
-            if dg_drv['State'] == 'Rbld':
+            if dg_drv["State"] == "Rbld":
                 status |= Pool.STATUS_RECONSTRUCTING
 
         if is_in_cc:
             status |= Pool.STATUS_VERIFYING
 
         if status == Pool.STATUS_UNKNOWN:
-            status_info = dg_top['State']
+            status_info = dg_top["State"]
 
-        plugin_data = "/c%d/d%s" % (ctrl_num, dg_top['DG'])
+        plugin_data = "/c%d/d%s" % (ctrl_num, dg_top["DG"])
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
@@ -773,15 +778,15 @@ class MegaRAID(IPlugin):
                 if int(vd_id) in cc_vd_ids:
                     cc_dg_ids.append(int(dg_id))
 
-            for dg_top in dg_show_output['TOPOLOGY']:
-                if dg_top['Arr'] != '-':
+            for dg_top in dg_show_output["TOPOLOGY"]:
+                if dg_top["Arr"] != "-":
                     continue
-                if dg_top['DG'] == '-':
+                if dg_top["DG"] == "-":
                     continue
                 lsm_pools.append(
                     self._dg_top_to_lsm_pool(
                         dg_top, free_space_list, ctrl_num, dg_show_output,
-                        int(dg_top['DG']) in cc_dg_ids))
+                        int(dg_top["DG"]) in cc_dg_ids))
 
         return search_property(lsm_pools, search_key, search_value)
 
@@ -791,17 +796,17 @@ class MegaRAID(IPlugin):
 
         vol_id = "%s:VD%d" % (sys_id, vd_id)
         name = "VD %d" % vd_id
-        if 'Name' in list(vd_basic_info.keys()) and vd_basic_info['Name']:
-            name += ": %s" % vd_basic_info['Name']
+        if "Name" in list(vd_basic_info.keys()) and vd_basic_info["Name"]:
+            name += ": %s" % vd_basic_info["Name"]
 
-        vpd83 = vd_prop_info.get('SCSI NAA Id', '')
+        vpd83 = vd_prop_info.get("SCSI NAA Id", "")
         if len(vpd83) != 0:
             vol_id = vpd83
-        block_size = size_human_2_size_bytes(vd_pd_info_list[0]['SeSz'])
-        num_of_blocks = vd_prop_info['Number of Blocks']
+        block_size = size_human_2_size_bytes(vd_pd_info_list[0]["SeSz"])
+        num_of_blocks = vd_prop_info["Number of Blocks"]
         admin_state = Volume.ADMIN_STATE_ENABLED
-        if vd_prop_info['Exposed to OS'] != 'Yes' or \
-           vd_basic_info['Access'] != 'RW':
+        if vd_prop_info["Exposed to OS"] != "Yes" or \
+           vd_basic_info["Access"] != "RW":
             admin_state = Volume.ADMIN_STATE_DISABLED
         pool_id = _pool_id_of(dg_id, sys_id)
         plugin_data = vd_path
@@ -822,14 +827,14 @@ class MegaRAID(IPlugin):
             if vol_show_output is None or len(vol_show_output) == 0:
                 continue
             for key_name in list(vol_show_output.keys()):
-                if key_name.startswith('/c'):
+                if key_name.startswith("/c"):
                     vd_basic_info = vol_show_output[key_name][0]
-                    (dg_id, vd_id) = vd_basic_info['DG/VD'].split('/')
+                    (dg_id, vd_id) = vd_basic_info["DG/VD"].split("/")
                     dg_id = int(dg_id)
                     vd_id = int(vd_id)
-                    vd_pd_info_list = vol_show_output['PDs for VD %d' % vd_id]
+                    vd_pd_info_list = vol_show_output["PDs for VD %d" % vd_id]
 
-                    vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
+                    vd_prop_info = vol_show_output["VD%d Properties" % vd_id]
 
                     lsm_vols.append(
                         MegaRAID._vd_to_lsm_vol(
@@ -850,14 +855,14 @@ class MegaRAID(IPlugin):
         vd_path = _vd_path_of_lsm_vol(volume)
         vol_show_output = self._storcli_exec([vd_path, "show", "all"])
         vd_basic_info = vol_show_output[vd_path][0]
-        vd_id = int(vd_basic_info['DG/VD'].split('/')[-1])
-        vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
+        vd_id = int(vd_basic_info["DG/VD"].split("/")[-1])
+        vd_prop_info = vol_show_output["VD%d Properties" % vd_id]
 
         raid_type = _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info)
-        strip_size = _mega_size_to_lsm(vd_prop_info['Strip Size'])
+        strip_size = _mega_size_to_lsm(vd_prop_info["Strip Size"])
         disk_count = (
-            int(vd_prop_info['Number of Drives Per Span']) *
-            int(vd_prop_info['Span Depth']))
+            int(vd_prop_info["Number of Drives Per Span"]) *
+            int(vd_prop_info["Span Depth"]))
         if raid_type == Volume.RAID_TYPE_RAID0:
             strip_count = disk_count
         elif raid_type == Volume.RAID_TYPE_RAID1:
@@ -868,22 +873,22 @@ class MegaRAID(IPlugin):
             strip_count = disk_count - 2
         elif raid_type == Volume.RAID_TYPE_RAID50:
             strip_count = (
-                (int(vd_prop_info['Number of Drives Per Span']) - 1) *
-                int(vd_prop_info['Span Depth']))
+                (int(vd_prop_info["Number of Drives Per Span"]) - 1) *
+                int(vd_prop_info["Span Depth"]))
         elif raid_type == Volume.RAID_TYPE_RAID60:
             strip_count = (
-                (int(vd_prop_info['Number of Drives Per Span']) - 2) *
-                int(vd_prop_info['Span Depth']))
+                (int(vd_prop_info["Number of Drives Per Span"]) - 2) *
+                int(vd_prop_info["Span Depth"]))
         elif raid_type == Volume.RAID_TYPE_RAID10:
             strip_count = (
-                int(vd_prop_info['Number of Drives Per Span']) / 2 *
-                int(vd_prop_info['Span Depth']))
+                int(vd_prop_info["Number of Drives Per Span"]) / 2 *
+                int(vd_prop_info["Span Depth"]))
         else:
             # MegaRAID does not support 15 or 16 yet.
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_info(): Got unexpected RAID type: %s" %
-                vd_basic_info['TYPE'])
+                vd_basic_info["TYPE"])
 
         return [
             raid_type, strip_size, disk_count, strip_size,
@@ -901,25 +906,25 @@ class MegaRAID(IPlugin):
             try:
                 json_output = json.loads(exec_error.stdout)
                 detail_error = json_output[
-                    'Controllers'][0]['Command Status']['Detailed Status']
+                    "Controllers"][0]["Command Status"]["Detailed Status"]
             except Exception:
                 raise exec_error
 
-            if detail_error and detail_error[0]['Status'] == 'Not found':
+            if detail_error and detail_error[0]["Status"] == "Not found":
                 raise LsmError(
                     ErrorNumber.NOT_FOUND_POOL,
                     "Pool not found",
                 )
             raise
 
-        ctrl_num = lsi_dg_path.split('/')[1][1:]
+        ctrl_num = lsi_dg_path.split("/")[1][1:]
         lsm_disk_map = {}
         disk_ids = []
         for lsm_disk in self.disks():
             lsm_disk_map[lsm_disk.plugin_data] = lsm_disk.id
 
-        for dg_disk_info in dg_show_all_output['DG Drive LIST']:
-            cur_lsi_disk_id = "%s:%s" % (ctrl_num, dg_disk_info['EID:Slt'])
+        for dg_disk_info in dg_show_all_output["DG Drive LIST"]:
+            cur_lsi_disk_id = "%s:%s" % (ctrl_num, dg_disk_info["EID:Slt"])
             if cur_lsi_disk_id in list(lsm_disk_map.keys()):
                 disk_ids.append(lsm_disk_map[cur_lsi_disk_id])
             else:
@@ -929,13 +934,13 @@ class MegaRAID(IPlugin):
                     cur_lsi_disk_id)
 
         raid_type = Volume.RAID_TYPE_UNKNOWN
-        dg_num = lsi_dg_path.split('/')[2][1:]
-        for dg_top in dg_show_all_output['TOPOLOGY']:
-            if dg_top['Arr'] == '-' and \
-               dg_top['Row'] == '-' and \
-               int(dg_top['DG']) == int(dg_num):
+        dg_num = lsi_dg_path.split("/")[2][1:]
+        for dg_top in dg_show_all_output["TOPOLOGY"]:
+            if dg_top["Arr"] == "-" and \
+               dg_top["Row"] == "-" and \
+               int(dg_top["DG"]) == int(dg_num):
                 raid_type = _RAID_TYPE_MAP.get(
-                    dg_top['Type'], Volume.RAID_TYPE_UNKNOWN)
+                    dg_top["Type"], Volume.RAID_TYPE_UNKNOWN)
                 break
 
         if raid_type == Volume.RAID_TYPE_RAID1 and len(disk_ids) >= 4:
@@ -945,10 +950,10 @@ class MegaRAID(IPlugin):
 
     def _vcr_cap_get(self, mega_sys_path):
         cap_output = self._storcli_exec(
-            [mega_sys_path, "show", "all"])['Capabilities']
+            [mega_sys_path, "show", "all"])["Capabilities"]
 
         mega_raid_types = \
-            cap_output['RAID Level Supported'].replace(', \n', '').split(', ')
+            cap_output["RAID Level Supported"].replace(", \n", "").split(", ")
 
         supported_raid_types = []
         for cur_mega_raid_type in list(_RAID_TYPE_MAP.keys()):
@@ -958,8 +963,8 @@ class MegaRAID(IPlugin):
 
         supported_raid_types = sorted(list(set(supported_raid_types)))
 
-        min_strip_size = _mega_size_to_lsm(cap_output['Min Strip Size'])
-        max_strip_size = _mega_size_to_lsm(cap_output['Max Strip Size'])
+        min_strip_size = _mega_size_to_lsm(cap_output["Min Strip Size"])
+        max_strip_size = _mega_size_to_lsm(cap_output["Max Strip Size"])
 
         supported_strip_sizes = list(
             min_strip_size * (2 ** i)
@@ -1016,7 +1021,7 @@ class MegaRAID(IPlugin):
             # Disk should from the same controller.
             # Please be informed, the enclosure_str could be a empty(space).
             (cur_ctrl_num, cur_enclosure_str, slot_num) = \
-                disk.plugin_data.split(':')
+                disk.plugin_data.split(":")
 
             cur_ctrl_num = int(cur_ctrl_num)
 
@@ -1040,12 +1045,12 @@ class MegaRAID(IPlugin):
             slot_nums.append(slot_num)
 
         # Handle request volume name, LSI only allow 15 characters.
-        name = re.sub(r'[^0-9a-zA-Z_\-]+', '', name)[:15]
+        name = re.sub(r"[^0-9a-zA-Z_\-]+", "", name)[:15]
 
-        if enclosure_str == ' ':
-            drives_str = "drives=%s" % ','.join(slot_nums)
+        if enclosure_str == " ":
+            drives_str = "drives=%s" % ",".join(slot_nums)
         else:
-            drives_str = "drives=%s:%s" % (enclosure_str, ','.join(slot_nums))
+            drives_str = "drives=%s:%s" % (enclosure_str, ",".join(slot_nums))
 
         cmds = [
             "/c%s" % ctrl_num, "add", "vd", mega_raid_type,
@@ -1094,8 +1099,8 @@ class MegaRAID(IPlugin):
         dg_show_output = self._storcli_exec(
             ["/c%s/e%s/s%s" % tuple(disks[0].plugin_data.split(":")), "show"])
 
-        dg_id = dg_show_output['Drive Information'][0]['DG']
-        if dg_id == '-':
+        dg_id = dg_show_output["Drive Information"][0]["DG"]
+        if dg_id == "-":
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_create(): No error found in output, "
@@ -1105,7 +1110,7 @@ class MegaRAID(IPlugin):
 
         pool_id = _pool_id_of(dg_id, self._sys_id_of_ctrl_num(ctrl_num))
 
-        lsm_vols = self.volumes(search_key='pool_id', search_value=pool_id)
+        lsm_vols = self.volumes(search_key="pool_id", search_value=pool_id)
         if len(lsm_vols) != 1:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
@@ -1169,14 +1174,14 @@ class MegaRAID(IPlugin):
 
         vol_show_output = self._storcli_exec([vd_path, "show", "all"])
         vd_basic_info = vol_show_output[vd_path][0]
-        vd_id = int(vd_basic_info['DG/VD'].split('/')[-1])
-        vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
+        vd_id = int(vd_basic_info["DG/VD"].split("/")[-1])
+        vd_prop_info = vol_show_output["VD%d Properties" % vd_id]
 
         sys_all_output = self._storcli_exec(
-            ["/%s" % vd_path.split('/')[1], "show", "all"])
+            ["/%s" % vd_path.split("/")[1], "show", "all"])
 
         ram_size = _mega_size_to_lsm(
-            sys_all_output['HwCfg'].get('On Board Memory Size', '0 KB'))
+            sys_all_output["HwCfg"].get("On Board Memory Size", "0 KB"))
         if ram_size > 0:
             flag_has_ram = True
 
@@ -1185,20 +1190,20 @@ class MegaRAID(IPlugin):
             if lsm_bat.status == Battery.STATUS_OK:
                 flag_battery_ok = True
 
-        lsi_cache_setting = vd_basic_info['Cache']
+        lsi_cache_setting = vd_basic_info["Cache"]
         # According to MegaRAID document, read I/O is always cached for direct
         # I/O and cache I/O.
         read_cache_policy = Volume.READ_CACHE_POLICY_ENABLED
         write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
         read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
 
-        if lsi_cache_setting.endswith('D'):
+        if lsi_cache_setting.endswith("D"):
             # Direct I/O
-            if 'AWB' in lsi_cache_setting:
+            if "AWB" in lsi_cache_setting:
                 write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
-            elif 'WB' in lsi_cache_setting:
+            elif "WB" in lsi_cache_setting:
                 write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
-            elif 'WT' in lsi_cache_setting:
+            elif "WT" in lsi_cache_setting:
                 write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
             else:
                 raise LsmError(
@@ -1206,7 +1211,7 @@ class MegaRAID(IPlugin):
                     "Unknown write cache %s for volume %s" %
                     (lsi_cache_setting, vd_path),
                 )
-        elif lsi_cache_setting.endswith('C'):
+        elif lsi_cache_setting.endswith("C"):
             # cache I/O always caches write and read and ignore changes.
             write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
         else:
@@ -1225,10 +1230,10 @@ class MegaRAID(IPlugin):
 
         # TODO(Gris Ge): When 'Block SSD Write Disk Cache Change' of
         #                'Supported Adapter Operations' is 'Yes'
-        lsi_disk_cache_setting = vd_prop_info['Disk Cache Policy']
-        if lsi_disk_cache_setting == 'Disabled':
+        lsi_disk_cache_setting = vd_prop_info["Disk Cache Policy"]
+        if lsi_disk_cache_setting == "Disabled":
             phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_DISABLED
-        elif lsi_disk_cache_setting == 'Enabled':
+        elif lsi_disk_cache_setting == "Enabled":
             phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_ENABLED
         elif lsi_disk_cache_setting == "Disk's Default":
             phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_USE_DISK_SETTING
@@ -1282,8 +1287,8 @@ class MegaRAID(IPlugin):
         # setting and always cache write.
         vol_show_output = self._storcli_exec([vd_path, "show", "all"])
         vd_basic_info = vol_show_output[vd_path][0]
-        lsi_cache_setting = vd_basic_info['Cache']
-        if lsi_cache_setting.endswith('C'):
+        lsi_cache_setting = vd_basic_info["Cache"]
+        if lsi_cache_setting.endswith("C"):
             flag_cache_io = True
         else:
             flag_cache_io = False
@@ -1328,12 +1333,12 @@ class MegaRAID(IPlugin):
             storcli /cx/vx del force
         """
         _ = flags
-        lsm_vols = self.volumes(search_key='id', search_value=volume.id)
+        lsm_vols = self.volumes(search_key="id", search_value=volume.id)
         if len(lsm_vols) == 0:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
                 "Volume not found",
             )
 
-        cmd = [lsm_vols[0].plugin_data, 'del', 'force']
+        cmd = [lsm_vols[0].plugin_data, "del", "force"]
         self._storcli_exec(cmd)
