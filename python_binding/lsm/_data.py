@@ -121,9 +121,7 @@ class IData(object, metaclass=ABCMeta):
         This only works for objects that inherit from IData
         """
         if "class" in d:
-            class_name = d.pop("class")
-            del d["class"]
-            c = get_class("{}.{}".format(__name__, class_name))
+            c = get_class("{}.{}".format(__name__, d.pop("class")))
 
             # If any of the parameters are themselves an IData process them
             for k, v in list(d.items()):
