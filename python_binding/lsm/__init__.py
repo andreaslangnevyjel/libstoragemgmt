@@ -20,13 +20,49 @@ from lsm._common import error, info, LsmError, ErrorNumber, \
 
 from lsm._local_disk import LocalDisk
 
-from lsm._data import (Disk, Volume, Pool, System, FileSystem, FsSnapshot,
-                    NfsExport, BlockRange, AccessGroup, TargetPort,
-                    Capabilities, Battery)
+from lsm._data import Disk, Volume, Pool, System, FileSystem, FsSnapshot, \
+    NfsExport, BlockRange, AccessGroup, TargetPort, \
+    Capabilities, Battery
 from lsm._iplugin import IPlugin, IStorageAreaNetwork, \
     INetworkAttachedStorage, INfs
 
 from lsm._client import Client
 from lsm._pluginrunner import PluginRunner, search_property
 
-__all__ = []
+__all__ = [
+    "IPlugin",
+    "Client",
+    "PluginRunner",
+    "search_property",
+    "INfs",
+    "LsmError",
+    "JobStatus",
+    "uri_parse",
+    "md5",
+    "Proxy",
+    "size_bytes_2_size_human",
+    "size_human_2_size_bytes",
+    "common_urllib2_error_handler",
+    "Volume",
+    "Pool",
+    "FileSystem",
+    "FsSnapshot",
+    "NfsExport",
+    "BlockRange",
+    "AccessGroup",
+    "TargetPort",
+    "Capabilities",
+    "Disk",
+    "Battery",
+    "System",
+    "IStorageAreaNetwork",
+    "INetworkAttachedStorage",
+    "LocalDisk",
+    # lsm.version
+    "VERSION",
+    # common
+    "error",
+    "info",
+    "ErrorNumber",
+    "int_div",
+]

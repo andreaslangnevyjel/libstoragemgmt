@@ -15,12 +15,16 @@
 # Author: Gris Ge <fge@redhat.com>
 
 import hashlib
-import json
 import os
-import subprocess
 from typing import List
 
 import redis
+from mwct.tools import process_tools
+
+__all__ = [
+    "cmd_exec",
+    "ExecError",
+]
 
 
 class DelayedRedis(object):
@@ -42,7 +46,7 @@ class DelayedRedis(object):
     def get_cache(self):
         if not self._instance_init:
             self.init()
-        return redis.StrictRedis(
+        return redis.Redis(
             host=self._cache_addr,
             port=self._cache_port,
             db=0,
@@ -56,29 +60,27 @@ class DelayedRedis(object):
         return "cmd_{}".format(cur.hexdigest())
 
     @staticmethod
-    def _exec(cmds: List) -> str:
-        cmd_popen = subprocess.Popen(
+    def _exec(cmds: List) -> process_tools.CallResult:
+        result = process_tools.call_command(
             cmds,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env={
+            environment={
                 "PATH": os.getenv("PATH"),
             },
             universal_newlines=True,
+            log_stdout=False,
+            dynamic_read=True,
+            log_to_result=True,
         )
-        str_stdout = "".join(list(cmd_popen.stdout)).strip()
-        str_stderr = "".join(list(cmd_popen.stderr)).strip()
-        errno = cmd_popen.wait()
-        if errno != 0:
+        if result.retcode not in [0, 46]:
             raise ExecError(
                 " ".join(cmds),
-                errno,
-                str_stdout,
-                str_stderr,
+                result.retcode,
+                result.stdout,
+                result.stderr,
             )
-        return str_stdout
+        return result
 
-    def cmd_exec(self, cmds: List):
+    def cmd_exec(self, cmds: List[str]) -> process_tools.CallResult:
         cur_md5 = self.get_md5(cmds)
         mc = self.get_cache()
         previous = mc.get(cur_md5)
@@ -86,22 +88,18 @@ class DelayedRedis(object):
             cur_result = self._exec(cmds)
             mc.set(
                 cur_md5,
-                json.dumps(
-                    {
-                        "result": cur_result,
-                    },
-                ),
+                cur_result.to_json(),
                 30,
             )
             return cur_result
         else:
-            return json.loads(previous)["result"]
+            return process_tools.CallResult.from_json(previous)
 
 
 dmc_obj = DelayedRedis()
 
 
-def cmd_exec(cmds) -> str:
+def cmd_exec(cmds) -> process_tools.CallResult:
     """
     Execute provided command and return the STDOUT as string.
     Raise ExecError if command return code is not zero
