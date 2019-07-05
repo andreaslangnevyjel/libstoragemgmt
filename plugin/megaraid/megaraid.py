@@ -908,7 +908,8 @@ class MegaRAID(IPlugin):
             if detail_error and detail_error[0]['Status'] == 'Not found':
                 raise LsmError(
                     ErrorNumber.NOT_FOUND_POOL,
-                    "Pool not found")
+                    "Pool not found",
+                )
             raise
 
         ctrl_num = lsi_dg_path.split('/')[1][1:]
@@ -1010,7 +1011,8 @@ class MegaRAID(IPlugin):
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: missing plugin_data "
-                    "property")
+                    "property",
+                )
             # Disk should from the same controller.
             # Please be informed, the enclosure_str could be a empty(space).
             (cur_ctrl_num, cur_enclosure_str, slot_num) = \
@@ -1022,14 +1024,16 @@ class MegaRAID(IPlugin):
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
-                    "same controller/system.")
+                    "same controller/system.",
+                )
 
             if enclosure_str is not None and \
                cur_enclosure_str != enclosure_str:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
-                    "same disk enclosure.")
+                    "same disk enclosure.",
+                )
 
             ctrl_num = cur_ctrl_num
             enclosure_str = cur_enclosure_str
@@ -1074,13 +1078,15 @@ class MegaRAID(IPlugin):
             if raid_type not in supported_raid_types:
                 raise LsmError(
                     ErrorNumber.NO_SUPPORT,
-                    "Provided 'raid_type' is not supported")
+                    "Provided 'raid_type' is not supported",
+                )
 
             if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT and \
                strip_size not in supported_strip_sizes:
                 raise LsmError(
                     ErrorNumber.NO_SUPPORT,
-                    "Provided 'strip_size' is not supported")
+                    "Provided 'strip_size' is not supported",
+                )
 
             raise
 
@@ -1104,7 +1110,8 @@ class MegaRAID(IPlugin):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_create(): Got unexpected volume count(not 1) "
-                "when creating RAID volume")
+                "when creating RAID volume",
+            )
 
         return lsm_vols[0]
 
@@ -1259,7 +1266,8 @@ class MegaRAID(IPlugin):
                 raise LsmError(
                     ErrorNumber.NO_SUPPORT,
                     "Changing SSD physical disk cache is not allowed "
-                    "on MegaRAID")
+                    "on MegaRAID",
+                )
             raise
 
     @_handle_errors
@@ -1324,7 +1332,8 @@ class MegaRAID(IPlugin):
         if len(lsm_vols) == 0:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
-                "Volume not found")
+                "Volume not found",
+            )
 
         cmd = [lsm_vols[0].plugin_data, 'del', 'force']
         self._storcli_exec(cmd)

@@ -70,6 +70,7 @@ class DelayedRedis(object):
             log_stdout=False,
             dynamic_read=True,
             log_to_result=True,
+            encoding="ascii",
         )
         if result.retcode not in [0, 46]:
             raise ExecError(
@@ -84,8 +85,9 @@ class DelayedRedis(object):
         cur_md5 = self.get_md5(cmds)
         mc = self.get_cache()
         previous = mc.get(cur_md5)
-        if previous is None:
+        if previous is None:  #  or True:
             cur_result = self._exec(cmds)
+            # print(cur_result, cur_result.retcode)
             mc.set(
                 cur_md5,
                 cur_result.to_json(),
