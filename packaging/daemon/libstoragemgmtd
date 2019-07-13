@@ -14,14 +14,14 @@
 . /etc/init.d/functions
 
 NAME=lsmd
-PROG=/usr/bin/$NAME
+PROG=/usr/bin/${NAME}
 PID=/var/run/lsm/lsmd.pid
 LOCK=/var/lock/subsys/libstoragemgmtd
 
 RETVAL=0
 STATUS=0
 
-if [ "`id -u`" != 0 ] ; then
+if [[ "`id -u`" != 0 ]] ; then
 	echo "Not root"
 	exit 4
 fi
@@ -32,12 +32,12 @@ check_dirs() {
 }
 
 status_lsm() {
-	status -p $PID $NAME > /dev/null 2>&1
+	status -p ${PID} ${NAME} > /dev/null 2>&1
 	STATUS=$?
 }
 
 result() {
-	if [ $RETVAL -eq 0 ]; then
+	if [[ ${RETVAL} -eq 0 ]]; then
 		success
 	else
 		failure
@@ -46,9 +46,9 @@ result() {
 }
 
 int_start() {
-	$PROG
+	${PROG}
 	RETVAL=$?
-	[ $RETVAL -eq 0 ] && touch $LOCK && pidof $NAME > $PID
+	[[ ${RETVAL} -eq 0 ]] && touch ${LOCK} && pidof ${NAME} > ${PID}
 }
 
 # See how we were called.
@@ -57,26 +57,26 @@ case "$1" in
 	status_lsm
 	check_dirs
 
-	echo -n "Starting $NAME daemon:		"
+	echo -n "Starting ${NAME} daemon:		"
 
-	if [ $STATUS != 0 ] ; then
+	if [[ ${STATUS} != 0 ]] ; then
 		int_start
 	else	
-		RETVAL=$STATUS
+		RETVAL=${STATUS}
 	fi
 
 	result
 	;;
   force-stop|stop)
-	echo -n $"Stopping $NAME daemon: "
+	echo -n $"Stopping ${NAME} daemon: "
 	status_lsm
-	if [ $STATUS == 0 ] ; then
-		killproc -p $PID $NAME -TERM
+	if [[ ${STATUS} == 0 ]] ; then
+		killproc -p ${PID} ${NAME} -TERM
 		RETVAL=$?
 
-		if [ $RETVAL -eq 0 ]; then
-			rm -f $LOCK
-			rm -f $PID
+		if [[ ${RETVAL} -eq 0 ]]; then
+			rm -f ${LOCK}
+			rm -f ${PID}
 		fi
 	else
 		RETVAL=0
@@ -87,9 +87,9 @@ case "$1" in
   force-reload | reload)
 	status_lsm
 	check_dirs
-	echo -n $"Reloading $NAME daemon: "
-	if [ $STATUS == 0 ] ; then
-		killproc -p $PID $NAME -HUP
+	echo -n $"Reloading ${NAME} daemon: "
+	if [[ ${STATUS} == 0 ]] ; then
+		killproc -p ${PID} ${NAME} -HUP
 		RETVAL=$?
 	else
 		int_start
@@ -100,9 +100,9 @@ case "$1" in
   restart)
 	status_lsm
 	check_dirs
-	echo -n $"Restarting $NAME daemon: "	
-	if [ $STATUS == 0 ] ; then
-		killproc -p $PID $NAME -HUP
+	echo -n $"Restarting ${NAME} daemon: "
+	if [[ ${STATUS} == 0 ]] ; then
+		killproc -p ${PID} ${NAME} -HUP
 	else
 		int_start
 	fi
@@ -111,7 +111,7 @@ case "$1" in
 	;;
 
   status)
-	status -p $PID $NAME
+	status -p ${PID} ${NAME}
 	RETVAL=$?
 	;;
 
@@ -120,5 +120,5 @@ case "$1" in
 	;;
 esac
 
-exit $RETVAL
+exit ${RETVAL}
 
