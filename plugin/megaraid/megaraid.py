@@ -137,20 +137,18 @@ def _mega_size_to_lsm(mega_size):
     LSI Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
     Return int of block bytes
     """
-    print(mega_size)
+    from mwct.tools import logging_tools
     re_regex = re.compile(r"^([0-9.]+) *([EPTGMK])B$")
     re_match = re_regex.match(mega_size)
     if re_match:
-        return size_human_2_size_bytes(
-            "{}{}iB".format(re_match.group(1), re_match.group(2))
+        return logging_tools.interpret_size_str(mega_size)
+    else:
+        raise LsmError(
+            ErrorNumber.PLUGIN_BUG,
+            "_mega_size_to_lsm(): Got unexpected LSI size string {}".format(
+                mega_size,
+            ),
         )
-
-    raise LsmError(
-        ErrorNumber.PLUGIN_BUG,
-        "_mega_size_to_lsm(): Got unexpected LSI size string {}".format(
-            mega_size,
-        ),
-    )
 
 
 _POOL_STATUS_MAP: Dict = {
@@ -738,8 +736,12 @@ class MegaRAID(IPlugin):
         )
 
     @_handle_errors
-    def pools(self, search_key=None, search_value=None,
-              flags=Client.FLAG_RSVD):
+    def pools(
+        self,
+        search_key=None,
+        search_value=None,
+        flags=Client.FLAG_RSVD,
+    ) -> List:
         lsm_pools = []
         for ctrl_num in range(self._ctrl_count()):
             cc_vd_ids = []
@@ -769,9 +771,14 @@ class MegaRAID(IPlugin):
                     continue
                 if dg_top["DG"] == "-":
                     continue
+                if dg_top["DID"] != "-":
+                    continue
                 lsm_pools.append(
                     self._dg_top_to_lsm_pool(
-                        dg_top, free_space_list, ctrl_num, dg_show_output,
+                        dg_top,
+                        free_space_list,
+                        ctrl_num,
+                        dg_show_output,
                         int(dg_top["DG"]) in cc_dg_ids,
                     )
                 )

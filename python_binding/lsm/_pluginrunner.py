@@ -14,26 +14,31 @@
 #
 # Author: tasleson
 
-import socket
-import traceback
-import sys
-from lsm import LsmError, error, ErrorNumber
-from lsm.lsmcli import cmd_line_wrapper
-import six
 import errno
+import socket
+import sys
+import traceback
+from typing import List
 
+import six
+from lsm.lsmcli import cmd_line_wrapper
+
+from lsm import LsmError, error, ErrorNumber
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._transport import TransPort
 
-def search_property(lsm_objs, search_key, search_value):
+
+def search_property(lsm_objs: List, search_key: str, search_value) -> List:
     """
     This method does not check whether lsm_obj contain requested property.
     The method caller should do the check.
     """
     if search_key is None:
         return lsm_objs
-    return list(lsm_obj for lsm_obj in lsm_objs
-                if getattr(lsm_obj, search_key) == search_value)
+    else:
+        return list(
+            lsm_obj for lsm_obj in lsm_objs if getattr(lsm_obj, search_key) == search_value
+        )
 
 
 class PluginRunner(object):
