@@ -52,6 +52,8 @@ def _handle_errors(method: Callable):
         except ExecError as exec_error:
             raise LsmError(ErrorNumber.PLUGIN_BUG, str(exec_error))
         except Exception as common_error:
+            # from mwct.tools import logging_tools
+            # print(logging_tools.log_all_lines(logging_tools.dummy_time_log))
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "Got unexpected error {}".format(
@@ -513,7 +515,8 @@ class MegaRAID(IPlugin):
             real_data = ctrl_output[0].get("Response Data")
             if real_data and "Response Data" in list(real_data.keys()):
                 return real_data["Response Data"]
-
+            if real_data is None:
+                real_data = {}
             return real_data
         else:
             return output
