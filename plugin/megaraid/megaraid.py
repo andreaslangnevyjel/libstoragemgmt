@@ -464,6 +464,7 @@ class MegaRAID(IPlugin):
         self,
         storcli_cmds: Union[str, List[str]],
         flag_json: bool=True,
+        ignore_failure: bool=False,
     ) -> Union[str, Dict[str, Union[str, Dict[str, Dict], int, List[Union[str, int, Dict]]]]]:
         if isinstance(storcli_cmds, str):
             storcli_cmds = storcli_cmds.strip().split()
@@ -498,16 +499,20 @@ class MegaRAID(IPlugin):
                 )
 
             rc_status = ctrl_output[0].get("Command Status")
-            if (cmd_result.retcode, rc_status.get("Status")) not in [
+            ignore_list = [
                 # is OK
                 (0, "Success"),
                 # error getting drive status
                 (46, "Failure"),
-            ]:
+            ]
+            if ignore_failure:
+                ignore_list.append((0, "Failure"))
+            if (cmd_result.retcode, rc_status.get("Status")) not in ignore_list:
                 detail_status = rc_status["Detailed Status"][0]
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
-                    "MegaRAID storcli failed with error {:d}: {}".format(
+                    "MegaRAID storcli cmd '{}' failed with error {:d}: {}".format(
+                        " ".join(storcli_cmds),
                         detail_status["ErrCd"],
                         detail_status["ErrMsg"],
                     ),
@@ -632,6 +637,7 @@ class MegaRAID(IPlugin):
                 disk_show_output.update(
                     self._storcli_exec(
                         "/c{:d}/sall show all".format(ctrl_num),
+                        ignore_failure=True,
                     ),
                 )
             except (ExecError, TypeError):
