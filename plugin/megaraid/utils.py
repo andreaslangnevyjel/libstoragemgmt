@@ -72,7 +72,7 @@ class DelayedRedis(object):
             log_to_result=True,
             encoding="ascii",
         )
-        if result.retcode not in [0, 46]:
+        if result.retcode not in [0, 45, 46]:
             raise ExecError(
                 " ".join(cmds),
                 result.retcode,

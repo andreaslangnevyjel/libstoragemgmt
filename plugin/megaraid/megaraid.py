@@ -504,6 +504,8 @@ class MegaRAID(IPlugin):
                 (0, "Success"),
                 # error getting drive status
                 (46, "Failure"),
+                # for newer megarc
+                (45, "Failure"),
             ]
             if ignore_failure:
                 ignore_list.append((0, "Failure"))
@@ -609,8 +611,12 @@ class MegaRAID(IPlugin):
         return rc_lsm_syss
 
     @_handle_errors
-    def disks(self, search_key=None, search_value=None,
-              flags=Client.FLAG_RSVD):
+    def disks(
+        self,
+        search_key=None,
+        search_value=None,
+        flags=Client.FLAG_RSVD,
+    ):
         _ = flags
         rc_lsm_disks = []
         mega_disk_path_regex = re.compile(
@@ -625,10 +631,10 @@ class MegaRAID(IPlugin):
 
         for ctrl_num in range(self._ctrl_count()):
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
-
             try:
                 disk_show_output = self._storcli_exec(
                     "/c{:d}/eall/sall show all".format(ctrl_num),
+                    ignore_failure=True,
                 )
             except ExecError:
                 disk_show_output = {}
@@ -642,7 +648,6 @@ class MegaRAID(IPlugin):
                 )
             except (ExecError, TypeError):
                 pass
-
             for drive_name in list(disk_show_output.keys()):
                 re_match = mega_disk_path_regex.match(drive_name)
                 if not re_match:
@@ -651,13 +656,13 @@ class MegaRAID(IPlugin):
                 mega_disk_path = re_match.group(1)
                 # Assuming only 1 disk attached to each slot.
                 disk_show_basic_dict = disk_show_output[
-                    "Drive %s" % mega_disk_path
+                    "Drive {}".format(mega_disk_path)
                 ][0]
                 disk_show_attr_dict = disk_show_output[drive_name][
                     "Drive %s Device attributes" % mega_disk_path
                 ]
                 disk_show_stat_dict = disk_show_output[drive_name][
-                    "Drive %s State" % mega_disk_path
+                    "Drive {} State".format(mega_disk_path)
                 ]
 
                 disk_id = disk_show_attr_dict["SN"].strip()
@@ -676,7 +681,7 @@ class MegaRAID(IPlugin):
                     disk_show_stat_dict,
                 )
 
-                plugin_data = "%s:%s" % (
+                plugin_data = "{}:{}".format(
                     ctrl_num,
                     disk_show_basic_dict["EID:Slt"],
                 )
@@ -695,7 +700,6 @@ class MegaRAID(IPlugin):
                         _link_type=link_type,
                     )
                 )
-
         return search_property(rc_lsm_disks, search_key, search_value)
 
     @staticmethod
@@ -851,7 +855,7 @@ class MegaRAID(IPlugin):
         return search_property(lsm_vols, search_key, search_value)
 
     @_handle_errors
-    def volume_raid_info(self, volume, flags=Client.FLAG_RSVD):
+    def volume_raid_info(self, volume, flags=Client.FLAG_RSVD) -> List:
         _ = flags
         if not volume.plugin_data:
             raise LsmError(
@@ -899,7 +903,8 @@ class MegaRAID(IPlugin):
 
         return [
             raid_type, strip_size, disk_count, strip_size,
-            strip_size * strip_count]
+            strip_size * strip_count,
+        ]
 
     @_handle_errors
     def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
@@ -908,7 +913,8 @@ class MegaRAID(IPlugin):
         # Check whether pool exists.
         try:
             dg_show_all_output = self._storcli_exec(
-                [lsi_dg_path, "show", "all"])
+                [lsi_dg_path, "show", "all"],
+            )
         except ExecError as exec_error:
             try:
                 json_output = json.loads(exec_error.stdout)
@@ -931,22 +937,23 @@ class MegaRAID(IPlugin):
             lsm_disk_map[lsm_disk.plugin_data] = lsm_disk.id
 
         for dg_disk_info in dg_show_all_output["DG Drive LIST"]:
-            cur_lsi_disk_id = "%s:%s" % (ctrl_num, dg_disk_info["EID:Slt"])
+            cur_lsi_disk_id = "{}:{}".format(ctrl_num, dg_disk_info["EID:Slt"])
             if cur_lsi_disk_id in list(lsm_disk_map.keys()):
                 disk_ids.append(lsm_disk_map[cur_lsi_disk_id])
             else:
-                raise LsmError(
-                    ErrorNumber.PLUGIN_BUG,
-                    "pool_member_info(): Failed to find disk id of %s" %
-                    cur_lsi_disk_id,
-                )
+                # disk may be missing, do NOT raise an error here
+                pass
+                # raise LsmError(
+                #    ErrorNumber.PLUGIN_BUG,
+                #    "pool_member_info(): Failed to find disk id of {}".format(
+                #        cur_lsi_disk_id,
+                #    ),
+                # )
 
         raid_type = Volume.RAID_TYPE_UNKNOWN
         dg_num = lsi_dg_path.split("/")[2][1:]
         for dg_top in dg_show_all_output["TOPOLOGY"]:
-            if dg_top["Arr"] == "-" and \
-               dg_top["Row"] == "-" and \
-               int(dg_top["DG"]) == int(dg_num):
+            if dg_top["Arr"] == "-" and dg_top["Row"] == "-" and int(dg_top["DG"]) == int(dg_num):
                 raid_type = _RAID_TYPE_MAP.get(
                     dg_top["Type"], Volume.RAID_TYPE_UNKNOWN)
                 break

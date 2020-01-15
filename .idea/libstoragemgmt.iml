@@ -42,11 +42,10 @@
       <sourceFolder url="file://$MODULE_DIR$/tools/use_cases" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tools/utility" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7.5 (/opt/cluster/bin/python3.7)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.7.6 (/opt/cluster/bin/python3.7)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">
-    <option name="projectConfiguration" value="Twisted Trial" />
     <option name="PROJECT_TEST_RUNNER" value="Twisted Trial" />
   </component>
 </module>
