@@ -381,18 +381,26 @@ class MegaRAID(IPlugin):
                 self._storcli_bin = cur_path
                 try:
                     self._storcli_exec("-v", flag_json=False)
-                    working_bins.append(cur_path)
                 except Exception:
                     pass
+                else:
+                    working_bins.append(cur_path)
 
         if len(working_bins) == 1:
             self._storcli_bin = working_bins[0]
             return
-
-        raise LsmError(
-            ErrorNumber.INVALID_ARGUMENT,
-            "MegaRAID storcli or perccli is not installed correctly",
-        )
+        elif len(working_bins) > 1:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "More than one MegaRAID storcli or perccli found ({})".format(
+                    ", ".join(sorted(working_bins)),
+                ),
+            )
+        else:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "MegaRAID storcli or perccli is not installed correctly",
+            )
 
     @_handle_errors
     def plugin_register(self, uri, password, timeout, flags=Client.FLAG_RSVD):

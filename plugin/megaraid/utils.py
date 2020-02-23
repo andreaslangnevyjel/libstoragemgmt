@@ -33,7 +33,7 @@ class DelayedRedis(object):
         self._instance_init = False
 
     def init(self):
-        from mwct.control.service.instance import InstanceXML
+        from mwct.tools.service import InstanceXML
         from mwct.host_monitor_server.client_enums import ServiceEnum
         self._instance = InstanceXML(quiet=True)
         self._cache_port = self._instance.get_port_dict(
