@@ -42,7 +42,7 @@
       <sourceFolder url="file://$MODULE_DIR$/tools/use_cases" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tools/utility" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7.6 (/opt/cluster/bin/python3.7)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8.2 (/opt/cluster/bin/python3.8)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">
