@@ -29,17 +29,18 @@ __all__ = [
 
 class DelayedRedis(object):
     def __init__(self):
-        self._instance = None
         self._instance_init = False
 
     def init(self):
-        from mwct.tools.service import InstanceXML
-        from mwct.host_monitor_server.client_enums import ServiceEnum
-        self._instance = InstanceXML(quiet=True)
-        self._cache_port = self._instance.get_port_dict(
-            ServiceEnum.redis_server,
-            command=True,
-        )
+        try:
+            from mwct.tools.service import InstanceXML
+            from mwct.host_monitor_server.client_enums import ServiceEnum
+            self._cache_port = InstanceXML(quiet=True).get_port_dict(
+                ServiceEnum.redis_server,
+                command=True,
+            )
+        except Exception:
+            self._cache_port = 6379
         self._instance_init = True
         self._cache_addr = "127.0.0.1"
 
