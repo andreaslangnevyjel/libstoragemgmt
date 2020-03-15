@@ -14,8 +14,8 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
+import asyncio
 import hashlib
-import os
 from typing import List
 
 import redis
@@ -62,16 +62,12 @@ class DelayedRedis(object):
 
     @staticmethod
     def _exec(cmds: List) -> process_tools.CallResult:
-        result = process_tools.call_command(
-            cmds,
-            environment={
-                "PATH": os.getenv("PATH"),
-            },
-            universal_newlines=True,
-            log_stdout=False,
-            dynamic_read=True,
-            log_to_result=True,
-            encoding="ascii",
+        result = asyncio.run(
+            process_tools.CallCommandMixin.async_call(
+                cmds,
+                log_stdout=False,
+                log_to_result=True,
+            ),
         )
         if result.retcode not in [0, 45, 46]:
             raise ExecError(
