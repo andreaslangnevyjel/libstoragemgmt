@@ -737,7 +737,7 @@ class MegaRAID(IPlugin):
         if status == Pool.STATUS_UNKNOWN:
             status_info = dg_top["State"]
 
-        plugin_data = f"/c{ctrl_num:d}/p{dg_top['DG']}"
+        plugin_data = f"/c{ctrl_num:d}/d{dg_top['DG']}"
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
