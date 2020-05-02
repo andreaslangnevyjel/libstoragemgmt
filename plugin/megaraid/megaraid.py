@@ -658,12 +658,8 @@ class MegaRAID(IPlugin):
                 mega_disk_path = re_match.group(1)
                 # Assuming only 1 disk attached to each slot.
                 disk_show_basic_dict = disk_show_output[f"Drive {mega_disk_path}"][0]
-                disk_show_attr_dict = disk_show_output[drive_name][
-                    "Drive {} Device attributes".format(mega_disk_path)
-                ]
-                disk_show_stat_dict = disk_show_output[drive_name][
-                    "Drive {} State".format(mega_disk_path)
-                ]
+                disk_show_attr_dict = disk_show_output[drive_name][f"Drive {mega_disk_path} Device attributes"]
+                disk_show_stat_dict = disk_show_output[drive_name][f"Drive {mega_disk_path} State"]
 
                 disk_id = disk_show_attr_dict["SN"].strip()
                 disk_name = "Disk {} {} {}".format(
