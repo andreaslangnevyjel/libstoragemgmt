@@ -44,9 +44,7 @@ def _handle_errors(method: Callable) -> Callable:
         except KeyError as key_error:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "Expected key missing from MegaRAID storcli output: {}".format(
-                    key_error,
-                ),
+                f"Expected key missing from MegaRAID storcli output: {key_error!r}",
             )
         except ExecError as exec_error:
             raise LsmError(ErrorNumber.PLUGIN_BUG, str(exec_error))
@@ -55,9 +53,7 @@ def _handle_errors(method: Callable) -> Callable:
             # print(logging_tools.log_all_lines(logging_tools.dummy_time_log))
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "Got unexpected error {}".format(
-                    common_error,
-                ),
+                f"Got unexpected error {common_error!r}",
             )
 
     return _wrapper
@@ -146,9 +142,7 @@ def _mega_size_to_lsm(mega_size) -> int:
     else:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
-            "_mega_size_to_lsm(): Got unexpected LSI size string {}".format(
-                mega_size,
-            ),
+            f"_mega_size_to_lsm(): Got unexpected LSI size string {mega_size!s}",
         )
 
 
@@ -219,9 +213,7 @@ def _lsm_raid_type_to_mega(lsm_raid_type) -> str:
     except KeyError:
         raise LsmError(
             ErrorNumber.NO_SUPPORT,
-            "RAID type {:d} not supported".format(
-                lsm_raid_type,
-            ),
+            f"RAID type {lsm_raid_type:d} not supported",
         )
 
 
@@ -487,9 +479,7 @@ class MegaRAID(IPlugin):
             if os_error.errno == errno.ENOENT:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
-                    "storcli binary '{}' is not exist or executable.".format(
-                        self._storcli_bin,
-                    ),
+                    f"storcli binary '{self._storcli_bin}' is not exist or executable.",
                 )
             else:
                 raise
@@ -502,8 +492,7 @@ class MegaRAID(IPlugin):
             if len(ctrl_output) != 1:
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
-                    "_storcli_exec(): Unexpected output from MegaRAID "
-                    "storcli: {}".format(str(output_dict)),
+                    f"_storcli_exec(): Unexpected output from MegaRAID storcli: {output_dict!s}",
                 )
 
             rc_status = ctrl_output[0].get("Command Status")
@@ -541,9 +530,7 @@ class MegaRAID(IPlugin):
         if ctrl_count < 1:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_SYSTEM,
-                "No MegaRAID controller detected by {}".format(
-                    self._storcli_bin,
-                ),
+                f"No MegaRAID controller detected by {self._storcli_bin}",
             )
         return ctrl_count
 
@@ -555,7 +542,7 @@ class MegaRAID(IPlugin):
         if lsi_status_info["Controller Status"] == "Optimal":
             status = System.STATUS_OK
         else:
-            # TODO(Gris Ge): Try pull a disk off to check whether this change.
+            # TODO (Gris Ge): Try pull a disk off to check whether this change.
             status_info = "{}: ".format(
                 lsi_status_info["Controller Status"],
             )
@@ -574,7 +561,7 @@ class MegaRAID(IPlugin):
 
     def _sys_id_of_ctrl_num(self, ctrl_num: int, ctrl_show_all_output=None):
         if ctrl_show_all_output is None:
-            return self._storcli_exec("/c{:d} show".format(ctrl_num))["Serial Number"]
+            return self._storcli_exec(f"/c{ctrl_num:d} show")["Serial Number"]
         else:
             return ctrl_show_all_output["Basics"]["Serial Number"]
 
@@ -583,7 +570,7 @@ class MegaRAID(IPlugin):
         rc_lsm_syss = []
         for ctrl_num in range(self._ctrl_count()):
             ctrl_show_all_output = self._storcli_exec(
-                "/c{:d} show all".format(ctrl_num),
+                f"/c{ctrl_num:d} show all",
             )
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
             sys_name = "{} {} {}".format(
@@ -594,7 +581,7 @@ class MegaRAID(IPlugin):
             status, status_info = self._lsm_status_of_ctrl(
                 ctrl_show_all_output,
             )
-            plugin_data = "/c{:d}".format(ctrl_num)
+            plugin_data = f"/c{ctrl_num:d}"
             # Since PCI slot sequence might change.
             # This string just stored for quick system verification.
 
@@ -648,7 +635,7 @@ class MegaRAID(IPlugin):
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
             try:
                 disk_show_output = self._storcli_exec(
-                    "/c{:d}/eall/sall show all".format(ctrl_num),
+                    f"/c{ctrl_num:d}/eall/sall show all",
                     ignore_failure=True,
                 )
             except ExecError:
@@ -657,7 +644,7 @@ class MegaRAID(IPlugin):
             try:
                 disk_show_output.update(
                     self._storcli_exec(
-                        "/c{:d}/sall show all".format(ctrl_num),
+                        f"/c{ctrl_num:d}/sall show all",
                         ignore_failure=True,
                     ),
                 )
@@ -670,9 +657,7 @@ class MegaRAID(IPlugin):
 
                 mega_disk_path = re_match.group(1)
                 # Assuming only 1 disk attached to each slot.
-                disk_show_basic_dict = disk_show_output[
-                    "Drive {}".format(mega_disk_path)
-                ][0]
+                disk_show_basic_dict = disk_show_output[f"Drive {mega_disk_path}"][0]
                 disk_show_attr_dict = disk_show_output[drive_name][
                     "Drive {} Device attributes".format(mega_disk_path)
                 ]
@@ -696,10 +681,7 @@ class MegaRAID(IPlugin):
                     disk_show_stat_dict,
                 )
 
-                plugin_data = "{}:{}".format(
-                    ctrl_num,
-                    disk_show_basic_dict["EID:Slt"],
-                )
+                plugin_data = f"{ctrl_num}:{disk_show_basic_dict['EID:Slt']}"
                 vpd83 = disk_show_attr_dict["WWN"].lower()
                 if vpd83 == "na":
                     vpd83 = ""
@@ -755,7 +737,7 @@ class MegaRAID(IPlugin):
         if status == Pool.STATUS_UNKNOWN:
             status_info = dg_top["State"]
 
-        plugin_data = "/c{:d}/d{}".format(ctrl_num, dg_top["DG"])
+        plugin_data = f"/c{ctrl_num:d}/p{dg_top['DG']}"
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
@@ -774,12 +756,8 @@ class MegaRAID(IPlugin):
         for ctrl_num in range(self._ctrl_count()):
             cc_vd_ids = []
             cc_dg_ids = []
-            dg_show_output = self._storcli_exec(
-                "/c{:d}/dall show all".format(ctrl_num),
-            )
-            consist_check_output = self._storcli_exec(
-                "/c{:d}/vall show cc".format(ctrl_num),
-            )
+            dg_show_output = self._storcli_exec(f"/c{ctrl_num:d}/dall show all")
+            consist_check_output = self._storcli_exec(f"/c{ctrl_num:d}/vall show cc")
             free_space_list = dg_show_output.get("FREE SPACE DETAILS", [])
 
             if "TOPOLOGY" not in dg_show_output:
@@ -817,8 +795,8 @@ class MegaRAID(IPlugin):
     def _vd_to_lsm_vol(vd_id, dg_id, sys_id, vd_basic_info, vd_pd_info_list,
                        vd_prop_info, vd_path):
 
-        vol_id = "{}:VD{:d}".format(sys_id, vd_id)
-        name = "VD {:d}".format(vd_id)
+        vol_id = f"{sys_id}:VD{vd_id:d}"
+        name = f"VD {vd_id:d}"
         if "Name" in list(vd_basic_info.keys()) and vd_basic_info["Name"]:
             name += ": {}".format(vd_basic_info["Name"])
 
@@ -844,9 +822,7 @@ class MegaRAID(IPlugin):
         _ = flags
         lsm_vols = []
         for ctrl_num in range(self._ctrl_count()):
-            vol_show_output = self._storcli_exec(
-                "/c{:d}/vall show all".format(ctrl_num),
-            )
+            vol_show_output = self._storcli_exec(f"/c{ctrl_num:d}/vall show all")
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
             if vol_show_output is None or len(vol_show_output) == 0:
                 continue
@@ -856,9 +832,9 @@ class MegaRAID(IPlugin):
                     (dg_id, vd_id) = vd_basic_info["DG/VD"].split("/")
                     dg_id = int(dg_id)
                     vd_id = int(vd_id)
-                    vd_pd_info_list = vol_show_output["PDs for VD {:d}".format(vd_id)]
+                    vd_pd_info_list = vol_show_output[f"PDs for VD {vd_id:d}"]
 
-                    vd_prop_info = vol_show_output["VD{:d} Properties".format(vd_id)]
+                    vd_prop_info = vol_show_output[f"VD{vd_id:d} Properties"]
 
                     lsm_vols.append(
                         MegaRAID._vd_to_lsm_vol(
@@ -882,7 +858,7 @@ class MegaRAID(IPlugin):
         vol_show_output = self._storcli_exec([vd_path, "show", "all"])
         vd_basic_info = vol_show_output[vd_path][0]
         vd_id = int(vd_basic_info["DG/VD"].split("/")[-1])
-        vd_prop_info = vol_show_output["VD{:d} Properties".format(vd_id)]
+        vd_prop_info = vol_show_output[f"VD{vd_id:d} Properties"]
 
         raid_type = _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info)
         strip_size = _mega_size_to_lsm(vd_prop_info["Strip Size"])
@@ -935,8 +911,7 @@ class MegaRAID(IPlugin):
         except ExecError as exec_error:
             try:
                 json_output = json.loads(exec_error.stdout)
-                detail_error = json_output[
-                    "Controllers"][0]["Command Status"]["Detailed Status"]
+                detail_error = json_output["Controllers"][0]["Command Status"]["Detailed Status"]
             except Exception:
                 raise exec_error
 
@@ -954,7 +929,7 @@ class MegaRAID(IPlugin):
             lsm_disk_map[lsm_disk.plugin_data] = lsm_disk.id
 
         for dg_disk_info in dg_show_all_output["DG Drive LIST"]:
-            cur_lsi_disk_id = "{}:{}".format(ctrl_num, dg_disk_info["EID:Slt"])
+            cur_lsi_disk_id = f"{ctrl_num}:{dg_disk_info['EID:Slt']}"
             if cur_lsi_disk_id in list(lsm_disk_map.keys()):
                 disk_ids.append(lsm_disk_map[cur_lsi_disk_id])
             else:
@@ -1091,12 +1066,12 @@ class MegaRAID(IPlugin):
             drives_str = "drives={}:{}".format(enclosure_str, ",".join(slot_nums))
 
         cmds = [
-            "/c{}".format(ctrl_num),
+            f"/c{ctrl_num}",
             "add",
             "vd",
             mega_raid_type,
             'size=all',
-            "name={}".format(name),
+            f"name={name}",
             drives_str,
         ]
 
@@ -1148,7 +1123,7 @@ class MegaRAID(IPlugin):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_create(): No error found in output, "
-                "but RAID is not created: {}".fomrat(list(dg_show_output.items())),
+                "but RAID is not created: {}".format(list(dg_show_output.items())),
             )
         else:
             dg_id = int(dg_id)

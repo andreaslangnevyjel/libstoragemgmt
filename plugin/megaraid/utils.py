@@ -58,7 +58,7 @@ class DelayedRedis(object):
         cur = hashlib.new("md5")
         for cmd in cmds:
             cur.update(cmd.encode("utf-8"))
-        return "cmd_{}".format(cur.hexdigest())
+        return f"cmd_{cur.hexdigest()}"
 
     @staticmethod
     def _exec(cmds: List) -> process_tools.CallResult:
@@ -115,9 +115,4 @@ class ExecError(Exception):
         self.stderr = stderr
 
     def __str__(self) -> str:
-        return "cmd: '{}', errno: {:d}, stdout: '{}', stderr: '{}'".format(
-            self.cmd,
-            self.errno,
-            self.stdout,
-            self.stderr,
-        )
+        return f"cmd: '{self.cmd}', errno: {self.errno:d}, stdout: '{self.stdout}', stderr: '{self.stderr}'"
