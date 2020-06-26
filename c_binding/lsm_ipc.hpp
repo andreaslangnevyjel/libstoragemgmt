@@ -20,26 +20,18 @@
 #define LSM_IPC_H
 
 #include "libstoragemgmt/libstoragemgmt_common.h"
-#include <stdint.h>
-#include <string>
 #include <map>
-#include <vector>
 #include <sstream>
 #include <stdexcept>
+#include <stdint.h>
+#include <string>
+#include <vector>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#ifdef LSM_USE_YAJL
-#include <yajl/yajl_parse.h>
-#include <yajl/yajl_gen.h>
-#else
-#include <json.hpp>
-using json = nlohmann::json;
-#endif
-
-//Common serialization
+// Common serialization
 
 /**
  * Sends and receives payloads, unaware of the contents.
@@ -48,7 +40,6 @@ using json = nlohmann::json;
  */
 class LSM_DLL_LOCAL Transport {
   public:
-
     /**
      * Size of the header which immediately proceeds the payload.
      */
@@ -58,13 +49,13 @@ class LSM_DLL_LOCAL Transport {
      * Empty ctor.
      * @return
      */
-     Transport();
+    Transport();
 
     /**
      * Class ctor
      * @param socket_desc   Connected socket descriptor.
      */
-     Transport(int socket_desc);
+    Transport(int socket_desc);
 
     /**
      * Class dtor
@@ -77,7 +68,7 @@ class LSM_DLL_LOCAL Transport {
      * @param[out]  error_code  Errno (only valid if we return -1)
      * @return 0 on success, else -1
      */
-    int msg_send(const std::string & msg, int &error_code);
+    int msg_send(const std::string &msg, int &error_code);
 
     /**
      * Received a message over the transport.
@@ -86,7 +77,7 @@ class LSM_DLL_LOCAL Transport {
      * @param error_code    (0 on success, else errno)
      * @return Message on success else 0 size with error_code set (not if EOF)
      */
-     std::string msg_recv(int &error_code);
+    std::string msg_recv(int &error_code);
 
     /**
      * Creates a connected socket (AF_UNIX) to the specified path
@@ -94,7 +85,7 @@ class LSM_DLL_LOCAL Transport {
      * @param error_code    Error reason for the failure (errno)
      * @return -1 on error, else connected socket.
      */
-    static int socket_get(const std::string & path, int &error_code);
+    static int socket_get(const std::string &path, int &error_code);
 
     /**
      * Closes the transport, called in the destructor if not done in advance.
@@ -103,7 +94,7 @@ class LSM_DLL_LOCAL Transport {
     void close();
 
   private:
-    int s;                      //Socket descriptor
+    int s; // Socket descriptor
 };
 
 /**
@@ -111,8 +102,7 @@ class LSM_DLL_LOCAL Transport {
  * @param v Template type T
  * @return string representation
  */
-template < class Type > static std::string to_string(Type v)
-{
+template <class Type> static std::string to_string(Type v) {
     std::stringstream out;
     out << v;
     return out.str();
@@ -122,16 +112,15 @@ template < class Type > static std::string to_string(Type v)
  * Class that represents an EOF condition
  * @param m     Message
  */
-class LSM_DLL_LOCAL EOFException:public std::runtime_error {
+class LSM_DLL_LOCAL EOFException : public std::runtime_error {
   public:
     EOFException(std::string m);
 };
 
-
 /**
  * User defined class for Value errors during serialize / de-serialize.
  */
-class LSM_DLL_LOCAL ValueException:public std::runtime_error {
+class LSM_DLL_LOCAL ValueException : public std::runtime_error {
   public:
     /**
      * Constructor
@@ -143,15 +132,14 @@ class LSM_DLL_LOCAL ValueException:public std::runtime_error {
 /**
  * User defined class for errors
  */
-class LSM_DLL_LOCAL LsmException:public std::runtime_error {
+class LSM_DLL_LOCAL LsmException : public std::runtime_error {
   public:
-
     /**
      * Constructor
      * @param code      Error code
      * @param msg       Error message
      */
-    LsmException(int code, std::string & msg);
+    LsmException(int code, std::string &msg);
 
     /**
      * Constructor
@@ -159,7 +147,7 @@ class LSM_DLL_LOCAL LsmException:public std::runtime_error {
      * @param msg           Error message
      * @param debug_addl    Additional debug data
      */
-    LsmException(int code, std::string & msg, const std::string & debug_addl);
+    LsmException(int code, std::string &msg, const std::string &debug_addl);
 
     /**
      * Constructor
@@ -168,9 +156,8 @@ class LSM_DLL_LOCAL LsmException:public std::runtime_error {
      * @param debug_addl        Additional debug
      * @param debug_data_addl   Additional debug data
      */
-    LsmException(int code, std::string & msg,
-                 const std::string & debug_addl,
-                 const std::string & debug_data_addl);
+    LsmException(int code, std::string &msg, const std::string &debug_addl,
+                 const std::string &debug_data_addl);
 
     /**
      * Destructor
@@ -187,12 +174,16 @@ class LSM_DLL_LOCAL LsmException:public std::runtime_error {
  */
 class LSM_DLL_LOCAL Value {
   public:
-
     /**
      * Different types this class can hold.
      */
     enum value_type {
-        null_t, boolean_t, string_t, numeric_t, object_t, array_t
+        null_t,
+        boolean_t,
+        string_t,
+        numeric_t,
+        object_t,
+        array_t
     };
 
     /**
@@ -235,7 +226,7 @@ class LSM_DLL_LOCAL Value {
      * @param type  Type this object will hold.
      * @param v value
      */
-    Value(value_type type, const std::string & v);
+    Value(value_type type, const std::string &v);
 
     /**
      * Constructor for char * i.e. string.
@@ -247,19 +238,19 @@ class LSM_DLL_LOCAL Value {
      * Constructor for std::string
      * @param v value
      */
-    Value(const std::string & v);
+    Value(const std::string &v);
 
     /**
      * Constructor for object type
      * @param v values
      */
-    Value(const std::map < std::string, Value > &v);
+    Value(const std::map<std::string, Value> &v);
 
     /**
      * Constructor for array type
      * @param v array values
      */
-    Value(const std::vector < Value > &v);
+    Value(const std::vector<Value> &v);
 
     /**
      * Serialize Value to json
@@ -278,20 +269,20 @@ class LSM_DLL_LOCAL Value {
      * @param key
      * @return Value
      */
-    Value & operator[] (const std::string & key);
+    Value &operator[](const std::string &key);
 
     /**
      * Overloaded operator for vector(array) access
      * @param i
      * @return Value
      */
-    Value & operator[] (uint32_t i);
+    Value &operator[](uint32_t i);
 
     /**
      * Returns true if value has a key in key/value pair
      * @return true if key exists, else false.
      */
-    bool hasKey(const std::string & k);
+    bool hasKey(const std::string &k);
 
     /**
      * Checks to see if a Value contains a valid request
@@ -352,25 +343,18 @@ class LSM_DLL_LOCAL Value {
      * key/value represented by object.
      * @return map of key and values else ValueException on error
      */
-    std::map < std::string, Value > asObject();
+    std::map<std::string, Value> asObject();
 
     /**
      * vector of values represented by object.
      * @return vector of array values else ValueException on error
      */
-    std::vector < Value > asArray();
+    std::vector<Value> asArray();
 
   private:
-
-#ifdef LSM_USE_YAJL
     value_type t;
-    void marshal(yajl_gen g);
-#else
-    json j;
-    json _getJson() const;
-#endif
-    std::vector <Value> array;
-    std::map <std::string, Value> obj;
+    std::vector<Value> array;
+    std::map<std::string, Value> obj;
     std::string s;
 };
 
@@ -384,14 +368,14 @@ class LSM_DLL_LOCAL Payload {
      * @param v Value to serialize
      * @return String representation
      */
-    static std::string serialize(Value & v);
+    static std::string serialize(Value &v);
 
     /**
      * Given a json string return a Value
      * @param json  String to de-serialize
      * @return Value
      */
-    static Value deserialize(const std::string & json);
+    static Value deserialize(const std::string &json);
 };
 
 class LSM_DLL_LOCAL Ipc {
@@ -424,7 +408,7 @@ class LSM_DLL_LOCAL Ipc {
      * @param params        Parameters
      * @param id            Request ID
      */
-    void requestSend(const std::string request, const Value & params,
+    void requestSend(const std::string request, const Value &params,
                      int32_t id = 100);
     /**
      * Reads a request
@@ -437,7 +421,7 @@ class LSM_DLL_LOCAL Ipc {
      * @param response      Response value
      * @param id            Id that matches request
      */
-    void responseSend(const Value & response, uint32_t id = 100);
+    void responseSend(const Value &response, uint32_t id = 100);
 
     /**
      * Read a response
@@ -462,9 +446,8 @@ class LSM_DLL_LOCAL Ipc {
      * @param id                Id of request
      * @return Result of the operation.
      */
-    Value rpc(const std::string & request, const Value & params,
+    Value rpc(const std::string &request, const Value &params,
               int32_t id = 100);
-
 
   private:
     Transport t;

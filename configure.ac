@@ -3,7 +3,7 @@ dnl Copyright (C) 2011-2016 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
 AC_INIT(
-    [libstoragemgmt], [1.8.3], [libstoragemgmt-devel@lists.fedorahosted.org],
+    [libstoragemgmt], [1.8.4], [libstoragemgmt-devel@lists.fedorahosted.org],
     [], [https://github.com/libstorage/libstoragemgmt/])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -177,7 +177,7 @@ fi
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 
 dnl ==========================================================================
-dnl See if the user wants to use python3
+dnl If we have python3 support or the user specified it explicitly use it.
 dnl ==========================================================================
 
 AC_ARG_WITH([python3],
@@ -185,6 +185,20 @@ AC_ARG_WITH([python3],
         [Use Python3 only])],
     [with_python3=yes],
     [])
+
+AC_ARG_WITH([python2],
+    [AS_HELP_STRING([--with-python2],
+        [Use Python2 only])],
+    [force_2=yes],
+    [])
+
+if test "x$force_2" = "xyes"; then
+    if test "x$with_python3" = "xyes"; then
+        AC_MSG_ERROR([--with-python2 and --with-python3 cannot be specified together])
+    fi
+else
+    AM_PATH_PYTHON([3], [with_python3=yes], [:])
+fi
 
 if test "x$with_python3" = "xyes"; then
     AC_SUBST(WITH_PYTHON3, yes)
@@ -421,31 +435,6 @@ AC_ARG_WITH([bash-completion-dir],
 
 AC_SUBST([bashcompletiondir], [$with_bash_completion_dir])
 
-AC_ARG_WITH([yajl],
-    [AC_HELP_STRING([--with-yajl],
-                    [Use yajl instead of nlohmann/json for json processing, default: no])],
-    [with_yajl=yes], [])
-
-AM_CONDITIONAL([WITH_YAJL], [test "x$with_yajl" = "xyes"])
-
-if test "x${with_yajl}" = "xyes"; then
-    #Check for json parser yajl
-    AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] ,
-                     AC_MSG_ERROR([Missing yajl development headers]) )
-    AC_CHECK_HEADERS([yajl/yajl_version.h])
-    AC_CHECK_LIB([yajl], [yajl_parse], [YAJL_LIBS=-lyajl],
-                 AC_MSG_ERROR([Missing yajl library]))
-    AC_SUBST([YAJL_LIBS])
-    AC_DEFINE([LSM_USE_YAJL], [], [Use yajl library])
-else
-    dnl =====================================================================
-    dnl Check for gcc support of c++11, required for nlohmann/json library.
-    dnl =====================================================================
-    AX_CXX_COMPILE_STDCXX(11, [noext], [mandatory])
-
-fi
-
-
 #Setup the unit directory for systemd stuff
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([systemdsystemunitdir],
@@ -549,8 +538,8 @@ AC_CONFIG_FILES([test/plugin_test.py],
     [chmod +x test/plugin_test.py])
 AC_CONFIG_FILES([test/cmdtest.py],
     [chmod +x test/cmdtest.py])
-AC_CONFIG_FILES([tools/sanity_check/local_sanity_check.py],
-    [chmod +x tools/sanity_check/local_sanity_check.py])
+AC_CONFIG_FILES([tools/basic_check/local_check.py],
+    [chmod +x tools/basic_check/local_check.py])
 AC_CONFIG_FILES([tools/use_cases/find_unused_lun.py],
     [chmod +x tools/use_cases/find_unused_lun.py])
 
